@@ -1,0 +1,114 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<section class="reveal stack" style="display:flex; flex-direction:column; gap:16px;">
+
+  <div class="card">
+    <div class="card-content">
+      <div class="row between" style="align-items:flex-start; gap:16px; flex-wrap:wrap;">
+        <div>
+          <div class="kicker">Модерация</div>
+          <h2 class="h2">Очередь проверок</h2>
+          <div class="muted mt-xxs">
+            Открывай строку, чтобы посмотреть детали и принять решение.
+          </div>
+        </div>
+
+        <div class="row gap-sm">
+          <a class="btn btn-ghost" href="/admin/tasks">К заданиям</a>
+          <a class="btn btn-primary" href="/admin">В админку</a>
+        </div>
+      </div>
+
+      <div class="table mt">
+        <div class="table-head">
+          <div>Ученик</div>
+          <div>Задание</div>
+          <div class="right">Баллы</div>
+          <div class="right">Дата</div>
+          <div class="right">Статус</div>
+        </div>
+
+        {% for r in reviews %}
+          <div class="table-row hoverlift review-row"
+               data-href="/admin/reviews/{{ r.id }}"
+               tabindex="0"
+               role="link"
+               aria-label="Открыть проверку {{ r.id }}">
+
+            <div class="truncate">
+              <div class="row gap-xs">
+                <span class="mono">#{{ r.id }}</span>
+                <span class="truncate">{{ r.student }}</span>
+              </div>
+              <div class="muted truncate" style="font-size:13px;">{{ r.student_email }}</div>
+            </div>
+
+            <div class="truncate">
+              <div class="truncate">{{ r.task_title }}</div>
+              <div class="muted" style="font-size:13px;">
+                task_id: <span class="mono">{{ r.task_id }}</span>
+              </div>
+            </div>
+
+            <div class="right mono">{{ r.points }}</div>
+            <div class="right muted">{{ r.submitted_at }}</div>
+
+            <div class="right">
+              {% if r.status == "pending" %}
+                <span class="badge badge-warn">Проверяется</span>
+              {% elif r.status == "approved" %}
+                <span class="badge badge-ok">Принято</span>
+              {% elif r.status == "rejected" %}
+                <span class="badge badge-bad">Отклонено</span>
+              {% else %}
+                <span class="badge">{{ r.status }}</span>
+              {% endif %}
+            </div>
+          </div>
+        {% else %}
+          <div class="muted" style="padding: 18px 4px;">
+            Пока отправок на проверку нет.
+          </div>
+        {% endfor %}
+      </div>
+
+    </div>
+  </div>
+
+</section>
+
+<style>
+  .gap-xs{ gap: 8px; }
+
+  .review-row{
+    cursor: pointer;
+    outline: none;
+  }
+
+  .review-row:hover{
+    filter: brightness(1.05);
+  }
+
+  .review-row:focus-visible{
+    box-shadow: 0 0 0 2px rgba(120, 120, 255, .55);
+    border-radius: 14px;
+  }
+</style>
+
+<script>
+  document.querySelectorAll('.review-row').forEach((row) => {
+    row.addEventListener('click', () => {
+      window.location.href = row.dataset.href;
+    });
+
+    row.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        window.location.href = row.dataset.href;
+      }
+    });
+  });
+</script>
+
+{% endblock %}

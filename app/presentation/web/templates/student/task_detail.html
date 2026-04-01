@@ -1,0 +1,158 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<section class="stack reveal" style="display:flex; flex-direction:column; gap:16px;">
+
+  <div class="row" style="justify-content:space-between; align-items:center;">
+    <div>
+      <div class="kicker">Задание</div>
+      <h1 class="h2" style="margin-top:6px;">{{ task.title }}</h1>
+    </div>
+
+    <div class="row" style="gap:10px; align-items:center;">
+      <span class="pill">{{ task.category }}</span>
+      <span class="pill">{{ task.points }} баллов</span>
+      {% if submission %}
+        <span class="pill">
+          {% if submission.status == "pending" %}
+            На проверке
+          {% elif submission.status == "approved" %}
+            Принято
+          {% elif submission.status == "rejected" %}
+            Отклонено
+          {% else %}
+            {{ submission.status }}
+          {% endif %}
+        </span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-content">
+      <h3 class="h3">Описание</h3>
+
+      <p class="muted mt-xs" style="line-height:1.7; white-space:pre-line;">
+        {{ task.description or "Описание пока не заполнено." }}
+      </p>
+
+      {% if submission %}
+        <div class="mt-md">
+          <div class="label" style="margin-bottom:6px;">Текущая отправка</div>
+          <div class="card" style="background: rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08);">
+            <div class="card-content">
+              <div class="muted" style="font-size:14px; margin-bottom:8px;">
+                Статус:
+                <strong>
+                  {% if submission.status == "pending" %}
+                    На проверке
+                  {% elif submission.status == "approved" %}
+                    Принято
+                  {% elif submission.status == "rejected" %}
+                    Отклонено
+                  {% else %}
+                    {{ submission.status }}
+                  {% endif %}
+                </strong>
+              </div>
+
+              <div style="white-space:pre-line; line-height:1.6;">
+                {{ submission.comment or "Комментарий не указан." }}
+              </div>
+              {% if files %}
+                <div class="mt-md">
+                  <div class="label" style="margin-bottom:8px;">Загруженные файлы</div>
+                  <div class="stack" style="display:grid; gap:8px;">
+                    {% for f in files %}
+                      <a
+                        href="{{ f.file_path }}"
+                        target="_blank"
+                        class="btn btn-ghost"
+                        style="justify-content:flex-start;"
+                      >
+                        {{ f.original_name }}
+                      </a>
+                    {% endfor %}
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-content">
+      <h3 class="h3">
+        {% if submission %}
+          Обновить отправку
+        {% else %}
+          Отправить выполнение
+        {% endif %}
+      </h3>
+
+      <p class="muted mt-xs">
+        Напиши комментарий, описание выполнения и при необходимости прикрепи фото, PDF, сертификаты, дипломы или другие подтверждающие файлы.
+      </p>
+
+      <form method="post" action="/tasks/{{ task.id }}/submit" enctype="multipart/form-data" class="form" style="margin-top:16px;">
+        <label class="field">
+          <span class="label">Комментарий</span>
+          <textarea
+            class="input"
+            name="comment"
+            rows="8"
+            placeholder="Опиши, как ты выполнил задание"
+          >{% if submission %}{{ submission.comment }}{% endif %}</textarea>
+        </label>
+        <label class="field" style="margin-top:12px;">
+          <span class="label">Файлы подтверждения</span>
+          <input
+            class="input"
+            type="file"
+            name="files"
+            multiple
+            accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
+          >
+          <div class="muted" style="margin-top:6px; font-size:13px;">
+            Можно прикрепить фото, PDF, сертификаты, дипломы, документы.
+          </div>
+        </label>
+        {% if files %}
+          <div class="mt-md">
+            <div class="label" style="margin-bottom:8px;">Прикреплённые файлы</div>
+            <div class="stack" style="display:grid; gap:8px;">
+              {% for f in files %}
+                <a
+                  href="{{ f.file_path }}"
+                  target="_blank"
+                  class="btn btn-ghost"
+                  style="justify-content:flex-start;"
+                >
+                  {{ f.original_name }}
+                </a>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        <div class="row" style="gap:10px; margin-top:12px;">
+          <button class="btn btn-primary" type="submit">
+            {% if submission %}
+              Обновить и отправить снова
+            {% else %}
+              Отправить на проверку
+            {% endif %}
+          </button>
+
+          <a class="btn btn-ghost" href="/tasks">Назад к списку</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</section>
+
+{% endblock %}

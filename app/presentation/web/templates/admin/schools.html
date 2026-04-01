@@ -1,0 +1,106 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<section class="reveal stack">
+
+  <h2 class="h2">Школы и классы</h2>
+
+  <div class="grid" style="grid-template-columns:1fr 1fr; gap:20px;">
+
+    <div class="card">
+      <div class="card-content">
+
+        <h3>Добавить школу</h3>
+
+        <form method="post" action="/admin/schools/new">
+
+          <label class="field">
+            <span class="label">Название школы</span>
+            <input class="input" name="name">
+          </label>
+
+          <label class="field">
+            <span class="label">Город</span>
+            <input class="input" name="city">
+          </label>
+
+          <button class="btn btn-primary mt">
+            Создать школу
+          </button>
+
+        </form>
+
+      </div>
+    </div>
+
+
+    <div class="card">
+      <div class="card-content">
+
+        <h3>Добавить класс</h3>
+
+        <form method="post" action="/admin/classes/new">
+
+          <label class="field">
+            <span class="label">Школа</span>
+            <select class="input" name="school_id">
+
+              {% for s in schools %}
+                <option value="{{ s.id }}">
+                  {{ s.name }}
+                </option>
+              {% endfor %}
+
+            </select>
+          </label>
+
+          <label class="field">
+            <span class="label">Класс</span>
+            <input class="input" name="name" placeholder="6А">
+          </label>
+
+          <button class="btn btn-primary mt">
+            Создать класс
+          </button>
+
+        </form>
+
+      </div>
+    </div>
+
+  </div>
+
+
+  <div class="card mt">
+    <div class="card-content">
+
+      <h3>Классы</h3>
+
+      <table class="table">
+
+        <thead>
+          <tr>
+            <th>Школа</th>
+            <th>Класс</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          {% for c, s in classes %}
+            <tr>
+              <td>{{ s.name }}</td>
+              <td>{{ c.name }}</td>
+            </tr>
+          {% endfor %}
+
+        </tbody>
+
+      </table>
+
+    </div>
+  </div>
+
+</section>
+
+{% endblock %}

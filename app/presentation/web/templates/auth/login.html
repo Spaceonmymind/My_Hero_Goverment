@@ -1,0 +1,42 @@
+<!-- app/presentation/web/templates/auth/login.html -->
+{% extends "layout.html" %}
+{% block content %}
+
+<section class="grid reveal">
+  <div class="card card-hero">
+    <div class="card-content">
+      <div class="kicker">Авторизация</div>
+      <h2 class="h2">Вход</h2>
+      <p class="muted">
+        Введите email и пароль.
+      </p>
+
+      {% if error %}
+        <div class="card" style="border:1px solid #f00; padding:12px; margin:12px 0;">
+          {{ error }}
+        </div>
+      {% endif %}
+
+      <form class="form" method="post" action="/auth/login">
+        <label class="field">
+          <span class="label">Email</span>
+          <input class="input" name="email" placeholder="student@demo" autocomplete="username"/>
+        </label>
+
+        <label class="field">
+          <span class="label">Пароль</span>
+          <input class="input" name="password" type="password" placeholder="любой" autocomplete="current-password"/>
+        </label>
+
+        <div class="row">
+          <button class="btn btn-primary btn-lg" type="submit">Войти</button>
+          <button class="btn btn-ghost btn-lg" type="button" data-cmd="fillDemo">Заполнить</button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+</section>
+
+{% endblock %}

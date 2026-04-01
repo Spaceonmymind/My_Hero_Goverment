@@ -1,0 +1,155 @@
+<!-- app/presentation/web/templates/admin/task_detail.html -->
+{% extends "layout.html" %}
+{% block content %}
+
+<section class="grid reveal">
+  <div class="card">
+    <div class="card-content">
+      <div class="row between">
+        <div>
+          <div class="kicker">Задание</div>
+          <h2 class="h2">{{ task.title }}</h2>
+          <div class="muted mt-xxs">
+            ID: <span class="mono">{{ task.id }}</span>
+            · Категория: <span class="mono">{{ task.category }}</span>
+          </div>
+        </div>
+
+        <div class="row gap-sm">
+          <a class="btn btn-ghost" href="/admin/tasks">Назад</a>
+          <button class="btn btn-primary" type="button"
+                  data-cmd="toast" data-title="MVP"
+                  data-body="Сохранение подключим после SQLite + модели + Alembic.">
+            Сохранить
+          </button>
+        </div>
+      </div>
+
+      <div class="grid mt" style="grid-template-columns: 1.3fr .7fr; gap: 14px;">
+        <!-- Левая: настройки -->
+        <div class="card" style="margin:0;">
+          <div class="card-content">
+            <div class="kicker">Параметры</div>
+
+            <div class="form mt">
+              <div class="field">
+                <label class="label">Название</label>
+                <input class="input" type="text" value="{{ task.title }}" placeholder="Название задания" />
+              </div>
+
+              <div class="field">
+                <label class="label">Категория</label>
+                <input class="input" type="text" value="{{ task.category }}" placeholder="Например: Образование" />
+              </div>
+
+              <div class="row gap-sm">
+                <div class="field" style="flex:1;">
+                  <label class="label">Баллы</label>
+                  <input class="input mono" type="number" value="{{ task.points }}" min="0" step="1" />
+                </div>
+
+                <div class="field" style="min-width: 220px;">
+                  <label class="label">Статус</label>
+                  <div class="row between pillbox">
+                    <div class="muted">Активность</div>
+                    <span class="pill {% if task.active %}pill-ok{% else %}pill-neutral{% endif %}">
+                      {% if task.active %}Активно{% else %}Скрыто{% endif %}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="muted mt" style="font-size: 13px;">
+                Сейчас поля только для вида. На следующем шаге подключим сохранение и валидации.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Правая: быстрые действия -->
+        <div class="card" style="margin:0;">
+          <div class="card-content">
+            <div class="kicker">Действия</div>
+            <h3 class="h3">Быстро</h3>
+
+            <div class="stack mt">
+              <button class="btn btn-ghost w100" type="button"
+                      data-cmd="toast" data-title="MVP"
+                      data-body="Позже: переключение активности (active/hidden) с записью в БД.">
+                {% if task.active %}Скрыть{% else %}Активировать{% endif %}
+              </button>
+
+              <button class="btn btn-ghost w100" type="button"
+                      data-cmd="toast" data-title="MVP"
+                      data-body="Позже: дублирование задания и редактирование копии.">
+                Дублировать
+              </button>
+
+              <button class="btn btn-ghost w100" type="button"
+                      data-cmd="toast" data-title="Без удаления"
+                      data-body="Удаление не делаем: используем флаг активности.">
+                Почему нельзя удалить?
+              </button>
+            </div>
+
+            <div class="divider mt"></div>
+
+            <div class="kicker">Подсказка</div>
+            <div class="muted mt-xxs">
+              Начисление баллов студенту всегда идёт через леджер транзакций — это исключает “перетирание” баланса.
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-content">
+      <div class="kicker">Проверки</div>
+      <h3 class="h3">Что будем валидировать</h3>
+      <ul class="list">
+        <li>Название: обязательно, 3–80 символов.</li>
+        <li>Баллы: 0–500 (порог потом уточним).</li>
+        <li>Категория: из справочника или свободный ввод (решим позже).</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Если у тебя нет form-стилей — добавим мягко и локально */
+  .form { display: grid; gap: 12px; }
+  .field { display: grid; gap: 8px; }
+  .label { font-size: 13px; opacity: .75; }
+  .input {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.04);
+    color: inherit;
+    outline: none;
+  }
+  .input:focus-visible{
+    box-shadow: 0 0 0 2px rgba(120, 120, 255, .45);
+    border-color: rgba(120, 120, 255, .35);
+  }
+  .pillbox{
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.02);
+  }
+  .stack{ display:grid; gap:10px; }
+  .w100{ width:100%; justify-content:center; }
+  .divider{
+    height: 1px;
+    background: rgba(255,255,255,.08);
+  }
+  .gap-sm{ gap: 10px; }
+  .mt-xxs{ margin-top: 6px; }
+</style>
+
+{% endblock %}

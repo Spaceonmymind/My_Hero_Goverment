@@ -1,0 +1,171 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<section class="reveal">
+  <div class="row between" style="align-items:flex-start; gap:16px;">
+    <div>
+      <h1 class="h2">История</h1>
+      <p class="muted mt-xs">Все твои отправки и статусы модерации.</p>
+    </div>
+    <div class="row gap-sm">
+      <a href="/" class="btn btn-secondary">Назад</a>
+      <a href="/tasks" class="btn btn-primary">К заданиям</a>
+    </div>
+  </div>
+
+  <section class="toolbar mt">
+    <div class="search">
+      <input class="input" id="histSearch" placeholder="Поиск по истории..." autocomplete="off" />
+    </div>
+
+    <div class="filters" id="histFilters">
+      <button class="chip active" type="button" data-filter="all">Все</button>
+      <button class="chip" type="button" data-filter="pending">Проверяется</button>
+      <button class="chip" type="button" data-filter="approved">Одобрено</button>
+      <button class="chip" type="button" data-filter="rejected">Отклонено</button>
+    </div>
+  </section>
+
+  {% if items|length == 0 %}
+    <div class="glass-card mt" style="max-width:720px;">
+      <h3 class="h3">Пока пусто</h3>
+      <p class="muted mt-xs">Выполни первое задание — и здесь появится история.</p>
+      <div class="row mt">
+        <a href="/tasks" class="btn btn-primary">Выбрать задание</a>
+      </div>
+    </div>
+  {% else %}
+    <div class="glass-card mt" style="padding:0; overflow:hidden;">
+      <div class="table">
+        <div class="table-head">
+          <div>Задание</div>
+          <div>Статус</div>
+          <div class="right">Баллы</div>
+          <div class="right"></div>
+        </div>
+
+        <div id="histGrid">
+          {% for it in items %}
+            <div class="table-row hoverlift clickable-row"
+                 data-title="{{ it.title|lower }}"
+                 data-status="{{ it.status }}"
+                 onclick="window.location.href='/tasks/{{ it.task_id }}'"
+                 role="button"
+                 tabindex="0"
+                 style="align-items:center;">
+              <div class="truncate">
+                <div class="kicker">{{ it.category }}</div>
+                <div style="font-weight:600;">{{ it.title }}</div>
+                {% if it.created_at %}
+                  <div class="muted mt-xs" style="font-size:12px; opacity:.7;">
+                    {{ it.created_at }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <div>
+                <span class="pill
+                  {% if it.status == 'approved' %}pill-ok
+                  {% elif it.status == 'rejected' %}pill-bad
+                  {% else %}pill-warn{% endif %}">
+                  {% if it.status == "pending" %}Проверяется{% elif it.status == "approved" %}Одобрено{% elif it.status == "rejected" %}Отклонено{% else %}{{ it.status }}{% endif %}
+                </span>
+
+                {% if it.status == "rejected" and it.reason %}
+                  <div class="muted mt-xs" style="font-size:12px; opacity:.75;">
+                    {{ it.reason }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <div class="right mono">
+                +{{ it.points }}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+
+    <section class="reveal" id="histEmpty" style="display:none;">
+      <div class="glass-card mt" style="max-width:720px;">
+        <h3 class="h3">Ничего не найдено</h3>
+        <p class="muted mt-xs">Попробуй изменить фильтр или строку поиска.</p>
+        <div class="row mt">
+          <button class="btn btn-secondary" type="button" id="resetHistBtn">Сбросить</button>
+        </div>
+      </div>
+    </section>
+  {% endif %}
+</section>
+
+<script>
+(function () {
+  const grid = document.getElementById("histGrid");
+  const empty = document.getElementById("histEmpty");
+  const search = document.getElementById("histSearch");
+  const filters = document.getElementById("histFilters");
+  const resetBtn = document.getElementById("resetHistBtn");
+
+  if (!grid) return;
+
+  const rows = Array.from(grid.querySelectorAll(".tr"));
+  let active = "all";
+
+  function normalize(v) { return (v || "").toString().trim().toLowerCase(); }
+
+  function apply() {
+    const q = normalize(search?.value);
+    let visible = 0;
+
+    rows.forEach((r) => {
+      const title = normalize(r.dataset.title);
+      const st = (r.dataset.status || "").toString();
+      const passFilter = (active === "all") || (st === active);
+      const passSearch = (!q) || title.includes(q);
+
+      const show = passFilter && passSearch;
+      r.style.display = show ? "" : "none";
+      if (show) visible += 1;
+    });
+
+    if (empty) empty.style.display = (visible === 0) ? "" : "none";
+  }
+
+  if (filters) {
+    filters.addEventListener("click", (e) => {
+      const btn = e.target.closest(".chip");
+      if (!btn) return;
+      active = btn.dataset.filter || "all";
+      filters.querySelectorAll(".chip").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      apply();
+    });
+  }
+
+  if (search) {
+    search.addEventListener("input", apply);
+    search.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") { search.value = ""; apply(); }
+    });
+  }
+
+  if (resetBtn) {
+    resetBtn.addEventListener("click", () => {
+      if (search) search.value = "";
+      active = "all";
+      if (filters) {
+        filters.querySelectorAll(".chip").forEach((b) => b.classList.remove("active"));
+        const all = filters.querySelector('.chip[data-filter="all"]');
+        if (all) all.classList.add("active");
+      }
+      apply();
+    });
+  }
+
+  apply();
+})();
+</script>
+
+{% endblock %}

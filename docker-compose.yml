@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: myhero
+      POSTGRES_USER: myhero
+      POSTGRES_PASSWORD: myhero_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - myhero_pg:/var/lib/postgresql/data
+
+volumes:
+  myhero_pg:

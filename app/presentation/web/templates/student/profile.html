@@ -1,0 +1,258 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<section class="reveal stack" style="display:flex; flex-direction:column; gap:18px;">
+
+  <div class="card">
+    <div class="card-content">
+
+      <div class="row between" style="align-items:center; gap:16px; flex-wrap:wrap;">
+
+        <div class="row" style="gap:14px; align-items:center;">
+
+          <div class="avatar">
+            {% if profile.avatar_url %}
+              <img src="{{ profile.avatar_url }}">
+            {% else %}
+              <span>👤</span>
+            {% endif %}
+          </div>
+
+          <div>
+            <h1 class="h2">
+              {{ profile.full_name or "Ученик" }}
+            </h1>
+
+            <div class="muted">
+              {% if school and class_group %}
+                {{ school.name }} · {{ class_group.name }}
+              {% elif class_group %}
+                {{ class_group.name }}
+              {% else %}
+                Класс не назначен
+              {% endif %}
+            </div>
+          </div>
+
+        </div>
+
+        <div class="pill" style="font-size:18px;">
+          ⭐ {{ profile.points_balance }} баллов
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+
+  <div class="grid" style="grid-template-columns:repeat(4,1fr); gap:14px;">
+
+    <div class="card stat">
+      <div class="card-content">
+        <div class="kicker">Всего отправок</div>
+        <div class="stat-value">{{ stats.total_submissions }}</div>
+      </div>
+    </div>
+
+    <div class="card stat">
+      <div class="card-content">
+        <div class="kicker">Зачтено</div>
+        <div class="stat-value ok">{{ stats.approved_count }}</div>
+      </div>
+    </div>
+
+    <div class="card stat">
+      <div class="card-content">
+        <div class="kicker">На проверке</div>
+        <div class="stat-value warn">{{ stats.pending_count }}</div>
+      </div>
+    </div>
+
+    <div class="card stat">
+      <div class="card-content">
+        <div class="kicker">Отклонено</div>
+        <div class="stat-value bad">{{ stats.rejected_count }}</div>
+      </div>
+    </div>
+
+  </div>
+
+
+  <div class="card">
+    <div class="card-content">
+      <div class="kicker">История баллов</div>
+      <h3 class="h3">Последние начисления</h3>
+
+      {% if ledger_entries %}
+        <div style="display:grid; gap:10px; margin-top:12px;">
+          {% for entry in ledger_entries %}
+            <div class="card" style="background: rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08);">
+              <div class="card-content" style="padding:12px 14px;">
+                <div class="row" style="justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+                  <div>
+                    <div style="font-weight:600;">
+                      {{ entry.reason }}
+                    </div>
+                    <div class="muted" style="font-size:13px; margin-top:4px;">
+                      {% if entry.source_role == "admin" %}
+                        Начислено администратором
+                      {% elif entry.source_role == "mentor" %}
+                        Начислено наставником
+                      {% else %}
+                        Системное начисление
+                      {% endif %}
+                      ·
+                      {{ entry.created_at.strftime("%Y-%m-%d %H:%M") if entry.created_at else "" }}
+                    </div>
+                  </div>
+
+                  <div class="pill" style="font-size:16px;">
+                    +{{ entry.points }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="muted" style="margin-top:12px;">
+          Пока начислений нет.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+
+  <div class="card">
+    <div class="card-content">
+
+      <div class="kicker">Редактирование профиля</div>
+      <h3 class="h3">Мои данные</h3>
+
+      {% if success %}
+        <div class="toast toast-success">{{ success }}</div>
+      {% endif %}
+
+      {% if error %}
+        <div class="toast toast-error">{{ error }}</div>
+      {% endif %}
+
+      <form method="post" action="/profile" class="form mt">
+
+        <div class="row" style="gap:12px; flex-wrap:wrap;">
+
+          <label class="field" style="flex:2;">
+            <span class="label">ФИО</span>
+            <input class="input" name="full_name" value="{{ profile.full_name }}">
+          </label>
+
+          <label class="field" style="flex:1;">
+            <span class="label">Дата рождения</span>
+            <input class="input" name="birth_date" value="{{ profile.birth_date }}">
+          </label>
+
+        </div>
+
+        <div class="card" style="margin-top:12px;">
+          <div class="card-content">
+            <div class="label" style="margin-bottom:8px;">Школа и класс</div>
+            <div class="muted">
+              {% if school and class_group %}
+                {{ school.name }} · {{ class_group.name }}
+              {% elif class_group %}
+                {{ class_group.name }}
+              {% else %}
+                Пока не назначены. Обратись к администратору или наставнику.
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+
+        <div class="row" style="gap:12px; flex-wrap:wrap; margin-top:12px;">
+
+          <label class="field" style="flex:2;">
+            <span class="label">ФИО родителя</span>
+            <input class="input" name="parent_name" value="{{ profile.parent_name }}">
+          </label>
+
+          <label class="field" style="flex:1;">
+            <span class="label">Телефон родителя</span>
+            <input class="input" name="parent_phone" value="{{ profile.parent_phone }}">
+          </label>
+
+        </div>
+
+
+        <label class="field mt">
+          <span class="label">Ссылка на аватар</span>
+          <input class="input" name="avatar_url" value="{{ profile.avatar_url }}">
+        </label>
+
+
+        <label class="field mt">
+          <span class="label">О себе</span>
+          <textarea class="input" name="about" rows="5">{{ profile.about }}</textarea>
+        </label>
+
+
+        <div class="row mt" style="gap:10px;">
+          <button class="btn btn-primary" type="submit">
+            Сохранить профиль
+          </button>
+
+          <a href="/tasks" class="btn btn-ghost">
+            К заданиям
+          </a>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+</section>
+
+
+<style>
+
+.avatar{
+  width:56px;
+  height:56px;
+  border-radius:50%;
+  background:rgba(255,255,255,.08);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:24px;
+  overflow:hidden;
+}
+
+.avatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.stat-value{
+  font-size:26px;
+  font-weight:600;
+  margin-top:6px;
+}
+
+.stat-value.ok{ color:#3bd671; }
+.stat-value.warn{ color:#ffc857; }
+.stat-value.bad{ color:#ff5c5c; }
+
+@media (max-width:900px){
+
+  .grid{
+    grid-template-columns:1fr 1fr !important;
+  }
+
+}
+
+</style>
+
+{% endblock %}

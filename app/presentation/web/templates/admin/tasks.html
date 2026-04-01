@@ -1,0 +1,110 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<section class="reveal stack" style="display:flex; flex-direction:column; gap:16px;">
+
+  <div class="card">
+    <div class="card-content">
+      <h2 class="h2">Задания</h2>
+      <p class="muted">Создание и просмотр заданий.</p>
+
+      {% if error %}
+        <div class="toast toast-error">{{ error }}</div>
+      {% endif %}
+      {% if success %}
+        <div class="toast toast-success">{{ success }}</div>
+      {% endif %}
+
+      <form class="form" method="post" action="/admin/tasks" style="margin-top:16px;">
+        <div class="row" style="gap:12px; align-items:flex-end; flex-wrap:wrap;">
+
+          <label class="field" style="flex:2; min-width:260px;">
+            <span class="label">Название</span>
+            <input class="input" name="title" value="{{ form.title }}" placeholder="Например, участие в олимпиаде"/>
+          </label>
+
+          <label class="field" style="flex:1; min-width:180px;">
+            <span class="label">Категория</span>
+            <input class="input" name="category" value="{{ form.category }}" placeholder="Общее"/>
+          </label>
+
+          <label class="field" style="width:140px;">
+            <span class="label">Баллы</span>
+            <input class="input" type="number" min="0" name="points" value="{{ form.points }}"/>
+          </label>
+        </div>
+
+        <label class="field" style="margin-top:12px;">
+          <span class="label">Описание</span>
+          <textarea class="input" name="description" rows="4" placeholder="Описание задания">{{ form.description }}</textarea>
+        </label>
+
+        <div class="row" style="gap:12px; align-items:center; margin-top:12px;">
+          <label class="row" style="gap:8px; align-items:center;">
+            <input type="checkbox" name="is_active" {% if form.is_active %}checked{% endif %}/>
+            <span>Активно</span>
+          </label>
+
+          <button class="btn btn-primary" type="submit">Создать задание</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-content table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th class="col-id">ID</th>
+            <th>Название</th>
+            <th>Категория</th>
+            <th>Баллы</th>
+            <th>Статус</th>
+            <th class="col-created">Создано</th>
+            <th class="col-actions">Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in tasks %}
+          <tr>
+            <td class="col-id">{{ t.id }}</td>
+            <td>{{ t.title }}</td>
+            <td>{{ t.category }}</td>
+            <td>{{ t.points }}</td>
+            <td>
+              <span class="pill">{{ "Активно" if t.is_active else "Выключено" }}</span>
+            </td>
+            <td class="col-created">
+              <div class="dt">{{ t.created_at.strftime("%Y-%m-%d") if t.created_at else "" }}</div>
+              <div class="tm muted">{{ t.created_at.strftime("%H:%M:%S") if t.created_at else "" }}</div>
+            </td>
+            <td class="col-actions">
+              <div class="row" style="gap:8px; flex-wrap:wrap;">
+                <form method="post" action="/admin/tasks/{{ t.id }}/toggle" style="display:inline;">
+                  <button class="btn btn-ghost" type="submit">
+                    {{ "Выключить" if t.is_active else "Включить" }}
+                  </button>
+                </form>
+
+                <form method="post" action="/admin/tasks/{{ t.id }}/delete"
+                      style="display:inline;"
+                      onsubmit="return confirm('Удалить задание {{ t.title }}?');">
+                  <button class="btn btn-danger" type="submit">Удалить</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="muted">Пока заданий нет.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</section>
+
+{% endblock %}

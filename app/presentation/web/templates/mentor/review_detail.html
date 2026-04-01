@@ -1,0 +1,95 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<section class="reveal stack" style="display:flex; flex-direction:column; gap:18px;">
+
+  <div class="card">
+    <div class="card-content">
+
+      <h2 class="h2">{{ task.title }}</h2>
+
+      <div class="muted">
+        Ученик: {{ profile.full_name or student.email }}
+      </div>
+
+      <div style="margin-top:10px;">
+        Баллы за задание: <b>{{ task.points }}</b>
+      </div>
+
+    </div>
+  </div>
+
+
+  <div class="card">
+    <div class="card-content">
+
+      <h3 class="h3">Комментарий ученика</h3>
+
+      <div class="muted" style="margin-top:8px;">
+        {{ submission.comment or "Комментарий не указан" }}
+      </div>
+
+    </div>
+  </div>
+
+
+  {% if files %}
+  <div class="card">
+    <div class="card-content">
+
+      <h3 class="h3">Прикреплённые файлы</h3>
+
+      <div style="display:grid; gap:8px; margin-top:12px;">
+        {% for f in files %}
+          <a
+            href="{{ f.file_path }}"
+            target="_blank"
+            class="btn btn-ghost"
+            style="justify-content:flex-start;"
+          >
+            {{ f.original_name }}
+          </a>
+        {% endfor %}
+      </div>
+
+    </div>
+  </div>
+  {% endif %}
+
+
+  {% if submission.file_url %}
+  <div class="card">
+    <div class="card-content">
+
+      <h3 class="h3">Файл</h3>
+
+      <a href="{{ submission.file_url }}" target="_blank" class="btn btn-ghost">
+        Скачать файл
+      </a>
+
+    </div>
+  </div>
+  {% endif %}
+
+
+  <div class="card">
+    <div class="card-content">
+
+      <form method="post" style="display:flex; gap:10px;">
+
+        <button name="action" value="approve" class="btn btn-primary">
+          Зачесть
+        </button>
+
+        <button name="action" value="reject" class="btn btn-danger">
+          Отклонить
+        </button>
+
+      </form>
+
+    </div>
+  </div>
+
+</section>
+
+{% endblock %}

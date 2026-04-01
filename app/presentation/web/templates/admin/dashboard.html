@@ -1,0 +1,128 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<section class="reveal stack" style="display:flex; flex-direction:column; gap:18px;">
+
+  <div class="card">
+    <div class="card-content">
+
+      <div class="row between" style="align-items:center; flex-wrap:wrap; gap:12px;">
+
+        <div>
+          <div class="kicker">Администрирование</div>
+          <h1 class="h2">Панель управления</h1>
+          <div class="muted">
+            Управление учениками, заданиями и проверками.
+          </div>
+        </div>
+
+        <div class="row" style="gap:10px; flex-wrap:wrap;">
+
+          <a href="/admin/users/new" class="btn btn-primary">
+            👤 Пользователи
+          </a>
+
+          <a href="/admin/tasks" class="btn btn-primary">
+            📚 Задания
+          </a>
+
+          <a href="/admin/reviews" class="btn btn-primary">
+            📝 Проверка работ
+          </a>
+
+          <a href="/admin/schools" class="btn btn-primary">
+            🏫 Школы и классы
+          </a>
+
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+
+  <div class="grid" style="grid-template-columns:repeat(4,1fr); gap:14px;">
+
+    <div class="card stat">
+      <div class="card-content">
+        <div class="kicker">Пользователи</div>
+        <div class="stat-value">{{ stats.users }}</div>
+      </div>
+    </div>
+
+    <div class="card stat">
+      <div class="card-content">
+        <div class="kicker">Задания</div>
+        <div class="stat-value">{{ stats.tasks }}</div>
+      </div>
+    </div>
+
+    <div class="card stat">
+      <div class="card-content">
+        <div class="kicker">Отправки</div>
+        <div class="stat-value">{{ stats.submissions }}</div>
+      </div>
+    </div>
+
+    <div class="card stat">
+      <div class="card-content">
+        <div class="kicker">На проверке</div>
+        <div class="stat-value warn">{{ stats.pending }}</div>
+      </div>
+    </div>
+
+  </div>
+
+</section>
+
+
+<style>
+
+.stat-value{
+  font-size:28px;
+  font-weight:600;
+  margin-top:6px;
+}
+
+.stat-value.warn{
+  color:#ffc857;
+}
+
+.quick-card{
+  display:block;
+  padding:18px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.02);
+  text-decoration:none;
+  transition:all .15s;
+}
+
+.quick-card:hover{
+  background:rgba(255,255,255,.05);
+  transform:translateY(-2px);
+}
+
+.qc-title{
+  font-size:16px;
+  font-weight:600;
+}
+
+.qc-desc{
+  font-size:13px;
+  opacity:.7;
+  margin-top:4px;
+}
+
+@media (max-width:900px){
+
+  .grid{
+    grid-template-columns:1fr 1fr !important;
+  }
+
+}
+
+</style>
+
+{% endblock %}

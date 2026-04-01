@@ -1,0 +1,13 @@
+README.md
+pyproject.toml
+app/config.py
+app/main.py
+app/presentation/web/templates_env.py
+app/presentation/web/routes/admin_routes.py
+app/presentation/web/routes/auth_routes.py
+app/presentation/web/routes/student_routes.py
+my_hero_mvp.egg-info/PKG-INFO
+my_hero_mvp.egg-info/SOURCES.txt
+my_hero_mvp.egg-info/dependency_links.txt
+my_hero_mvp.egg-info/requires.txt
+my_hero_mvp.egg-info/top_level.txt

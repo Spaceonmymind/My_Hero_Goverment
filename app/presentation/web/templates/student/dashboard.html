@@ -1,0 +1,178 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<section class="reveal stack" style="display:flex; flex-direction:column; gap:18px;">
+
+  <div class="card">
+    <div class="card-content">
+      <div class="row between" style="align-items:center; gap:16px; flex-wrap:wrap;">
+
+        <div>
+          <div class="kicker">Личный кабинет</div>
+          <h1 class="h2">Добро пожаловать 👋</h1>
+          <div class="muted mt-xxs">
+            Здесь ты можешь выполнять задания и зарабатывать баллы.
+          </div>
+        </div>
+
+        <div class="pill" style="font-size:18px;">
+          ⭐ {{ balance }} баллов
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <div class="grid" style="grid-template-columns: repeat(4,1fr); gap:14px;">
+
+    <div class="card stat">
+      <div class="card-content">
+        <div class="kicker">Всего отправок</div>
+        <div class="stat-value">{{ stats.total }}</div>
+      </div>
+    </div>
+
+    <div class="card stat">
+      <div class="card-content">
+        <div class="kicker">Зачтено</div>
+        <div class="stat-value ok">{{ stats.approved }}</div>
+      </div>
+    </div>
+
+    <div class="card stat">
+      <div class="card-content">
+        <div class="kicker">На проверке</div>
+        <div class="stat-value warn">{{ stats.pending }}</div>
+      </div>
+    </div>
+
+    <div class="card stat">
+      <div class="card-content">
+        <div class="kicker">Отклонено</div>
+        <div class="stat-value bad">{{ stats.rejected }}</div>
+      </div>
+    </div>
+
+  </div>
+
+
+  <div class="card">
+    <div class="card-content">
+
+      <div class="row between" style="align-items:center;">
+        <div>
+          <h3 class="h3">Твои отправки</h3>
+        </div>
+
+        <a href="/tasks" class="btn btn-primary">
+          Все задания
+        </a>
+      </div>
+
+      <div class="stack mt">
+
+        {% if recent %}
+          {% for r in recent %}
+            <div class="recent-row">
+
+              <div>
+                <div class="recent-title">
+                  {{ r.title }}
+                </div>
+
+                <div class="muted" style="font-size:13px;">
+                  {{ r.status }}
+                </div>
+              </div>
+
+              <div class="mono">
+                {% if r.points > 0 %}
+                  +{{ r.points }}
+                {% endif %}
+              </div>
+
+            </div>
+          {% endfor %}
+        {% else %}
+
+          <div class="muted">
+            Ты пока не отправлял задания.
+          </div>
+
+        {% endif %}
+
+      </div>
+
+    </div>
+  </div>
+
+
+  <div class="card">
+    <div class="card-content">
+
+      <div class="kicker">Быстрые действия</div>
+
+      <div class="row" style="gap:12px; flex-wrap:wrap; margin-top:12px;">
+
+        <a href="/tasks" class="btn btn-primary">
+          Открыть задания
+        </a>
+
+        <a href="/profile" class="btn btn-ghost">
+          Мой профиль
+        </a>
+
+      </div>
+
+    </div>
+  </div>
+
+</section>
+
+
+<style>
+
+.stat-value{
+  font-size:28px;
+  font-weight:600;
+  margin-top:6px;
+}
+
+.stat-value.ok{
+  color:#3bd671;
+}
+
+.stat-value.warn{
+  color:#ffc857;
+}
+
+.stat-value.bad{
+  color:#ff5c5c;
+}
+
+.recent-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:12px 14px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.02);
+}
+
+.recent-title{
+  font-weight:500;
+}
+
+@media (max-width: 900px){
+
+  .grid{
+    grid-template-columns:1fr 1fr !important;
+  }
+
+}
+
+</style>
+
+{% endblock %}

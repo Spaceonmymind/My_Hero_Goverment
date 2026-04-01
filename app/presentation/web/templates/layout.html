@@ -1,0 +1,45 @@
+<!-- app/presentation/web/templates/layout.html -->
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>{{ page_title }} — Мой Герой</title>
+
+  <link rel="stylesheet" href="/static/css/app.css"/>
+  <script defer src="/static/js/app.js"></script>
+</head>
+
+<body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+
+  {% include "components/_nav.html" %}
+
+  <main class="container">
+    <div class="page-head reveal">
+      <div class="page-title">
+        <h1>{{ page_title }}</h1>
+      </div>
+
+      <div class="page-actions">
+        <button class="btn btn-ghost" data-cmd="themeToggle" type="button">
+          Тема
+        </button>
+
+        {% if user %}
+          <form method="post" action="/auth/logout">
+            <button class="btn btn-primary" type="submit">Выйти</button>
+          </form>
+        {% else %}
+          <a class="btn btn-primary" href="/auth/login">Войти</a>
+        {% endif %}
+      </div>
+    </div>
+
+    {% block content %}{% endblock %}
+  </main>
+
+  {% include "components/_toast.html" %}
+</body>
+</html>
