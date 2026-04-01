@@ -52,9 +52,9 @@ def admin_dashboard(request: Request):
     }
 
     return templates.TemplateResponse(
+        request,
         "admin/dashboard.html",
         {
-            "request": request,
             "page_title": "Админ-панель",
             "user": user,
             "active_nav": "admin_dashboard",
@@ -74,9 +74,9 @@ def admin_tasks(request: Request):
         tasks = db.scalars(select(Task).order_by(Task.id.desc())).all()
 
     return templates.TemplateResponse(
+        request,
         "admin/tasks.html",
         {
-            "request": request,
             "page_title": "Задания",
             "user": user,
             "active_nav": "admin_tasks",
@@ -117,9 +117,9 @@ async def admin_tasks_create(request: Request):
             tasks = db.scalars(select(Task).order_by(Task.id.desc())).all()
 
         return templates.TemplateResponse(
+            request,
             "admin/tasks.html",
             {
-                "request": request,
                 "page_title": "Задания",
                 "user": user,
                 "active_nav": "admin_tasks",
@@ -202,9 +202,9 @@ def admin_task_detail(request: Request, task_id: int):
         return RedirectResponse(url="/admin/tasks", status_code=303)
 
     return templates.TemplateResponse(
+        request,
         "admin/task_detail.html",
         {
-            "request": request,
             "page_title": f"Задание #{task_id}",
             "user": user,
             "active_nav": "admin_tasks",
@@ -242,9 +242,9 @@ def admin_reviews(request: Request):
         })
 
     return templates.TemplateResponse(
+        request,
         "admin/reviews.html",
         {
-            "request": request,
             "page_title": "Очередь проверок",
             "user": user,
             "active_nav": "admin_reviews",
@@ -293,9 +293,9 @@ def admin_review_detail(request: Request, review_id: int):
     }
 
     return templates.TemplateResponse(
+        request,
         "admin/review_detail.html",
         {
-            "request": request,
             "page_title": f"Проверка #{review_id}",
             "user": user,
             "active_nav": "admin_reviews",
@@ -391,9 +391,9 @@ def admin_user_new(request: Request):
             mentor_class_map.setdefault(link.mentor_profile_id, []).append(link.class_group_id)
 
     return templates.TemplateResponse(
+        request,
         "admin/users.html",
         {
-            "request": request,
             "page_title": "Пользователи",
             "user": user,
             "active_nav": "admin_users_new",
@@ -475,9 +475,9 @@ async def admin_user_create(request: Request):
                 mentor_class_map.setdefault(link.mentor_profile_id, []).append(link.class_group_id)
 
         return templates.TemplateResponse(
+            request,
             "admin/users.html",
             {
-                "request": request,
                 "page_title": "Пользователи",
                 "user": user,
                 "active_nav": "admin_users_new",
@@ -596,9 +596,9 @@ def admin_schools(request: Request):
         ).all()
 
     return templates.TemplateResponse(
+        request,
         "admin/schools.html",
         {
-            "request": request,
             "page_title": "Школы и классы",
             "user": user,
             "active_nav": "admin_schools",

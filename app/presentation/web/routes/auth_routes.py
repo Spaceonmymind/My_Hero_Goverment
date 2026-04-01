@@ -1,4 +1,3 @@
-# app/presentation/web/routes/auth_routes.py
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from app.presentation.web.templates_env import templates
@@ -14,9 +13,9 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
     return templates.TemplateResponse(
+        request,
         "auth/login.html",
         {
-            "request": request,
             "page_title": "Вход",
             "user": None,
             "active_nav": "login",
@@ -32,9 +31,9 @@ async def login_post(request: Request):
 
     if not email or not password:
         return templates.TemplateResponse(
+            request,
             "auth/login.html",
             {
-                "request": request,
                 "page_title": "Вход",
                 "user": None,
                 "active_nav": "login",
@@ -48,9 +47,9 @@ async def login_post(request: Request):
 
     if not user or not verify_password(password, user.password_hash):
         return templates.TemplateResponse(
+            request,
             "auth/login.html",
             {
-                "request": request,
                 "page_title": "Вход",
                 "user": None,
                 "active_nav": "login",

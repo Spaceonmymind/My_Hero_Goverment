@@ -1,5 +1,5 @@
 from datetime import datetime
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from app.presentation.web.templates_env import templates
 from app.presentation.web.fake_repo import TASKS, SUBMISSIONS
@@ -15,8 +15,6 @@ from app.infra.models import (
     ClassGroup,
     PointsLedger,
 )
-from fastapi import UploadFile
-import os
 import uuid
 from pathlib import Path
 
@@ -39,6 +37,7 @@ def _require_student(request: Request):
         return RedirectResponse(url="/admin", status_code=303)
     return user
 
+
 def _get_current_db_user(request: Request):
     email = request.cookies.get("mh_email")
     if not email:
@@ -46,6 +45,7 @@ def _get_current_db_user(request: Request):
 
     with SessionLocal() as db:
         return db.scalar(select(User).where(User.email == email))
+
 
 def _get_or_create_student_profile(user_id: int):
     with SessionLocal() as db:
@@ -61,6 +61,7 @@ def _get_or_create_student_profile(user_id: int):
         db.refresh(profile)
         return profile
 
+
 @router.get("/", response_class=HTMLResponse)
 def student_dashboard(request: Request):
     user_or_redirect = _require_student(request)
@@ -73,7 +74,6 @@ def student_dashboard(request: Request):
         return RedirectResponse(url="/auth/login", status_code=303)
 
     with SessionLocal() as db:
-
         profile = db.scalar(
             select(StudentProfile).where(StudentProfile.user_id == db_user.id)
         )
@@ -103,16 +103,18 @@ def student_dashboard(request: Request):
             "rejected": "Отклонено",
         }
 
-        recent.append({
-            "title": task.title,
-            "status": status_map.get(sub.status, sub.status),
-            "points": task.points if sub.status == "approved" else 0,
-        })
+        recent.append(
+            {
+                "title": task.title,
+                "status": status_map.get(sub.status, sub.status),
+                "points": task.points if sub.status == "approved" else 0,
+            }
+        )
 
     return templates.TemplateResponse(
+        request,
         "student/dashboard.html",
         {
-            "request": request,
             "page_title": "Дашборд",
             "user": user,
             "active_nav": "dashboard",
@@ -150,9 +152,9 @@ def student_tasks(request: Request):
         t.badge = None
 
     return templates.TemplateResponse(
+        request,
         "student/tasks.html",
         {
-            "request": request,
             "page_title": "Задания",
             "user": user,
             "active_nav": "student_tasks",
@@ -160,6 +162,7 @@ def student_tasks(request: Request):
             "submission_map": submission_map,
         },
     )
+
 
 @router.get("/tasks/{task_id}", response_class=HTMLResponse)
 def student_task_detail(request: Request, task_id: int):
@@ -187,15 +190,15 @@ def student_task_detail(request: Request, task_id: int):
         files = []
         if submission:
             files = db.scalars(
-                select(SubmissionFile).where(
-                    SubmissionFile.submission_id == submission.id
-                ).order_by(SubmissionFile.id.desc())
+                select(SubmissionFile)
+                .where(SubmissionFile.submission_id == submission.id)
+                .order_by(SubmissionFile.id.desc())
             ).all()
 
     return templates.TemplateResponse(
+        request,
         "student/task_detail.html",
         {
-            "request": request,
             "page_title": task.title,
             "user": user,
             "active_nav": "student_tasks",
@@ -204,6 +207,7 @@ def student_task_detail(request: Request, task_id: int):
             "files": files,
         },
     )
+
 
 @router.post("/tasks/{task_id}/submit")
 async def submit_task(request: Request, task_id: int):
@@ -251,7 +255,6 @@ async def submit_task(request: Request, task_id: int):
             db.add(submission)
             db.flush()
 
-        # сохраняем новые файлы
         for file in uploaded_files:
             ext = Path(file.filename).suffix
             stored_name = f"{uuid.uuid4().hex}{ext}"
@@ -278,11 +281,13 @@ async def submit_task(request: Request, task_id: int):
 
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
 
+
 STATUS_LABEL = {
     "pending": "Проверяется",
     "approved": "Одобрено",
     "rejected": "Отклонено",
 }
+
 
 @router.get("/history", response_class=HTMLResponse)
 def student_history(request: Request):
@@ -291,9 +296,6 @@ def student_history(request: Request):
         return user_or_redirect
     user = user_or_redirect
 
-    from app.presentation.web.fake_repo import TASKS, SUBMISSIONS
-
-    # собираем элементы истории для текущего юзера
     items = []
     for s in SUBMISSIONS:
         if s.get("user") != user["email"]:
@@ -313,32 +315,34 @@ def student_history(request: Request):
             except ValueError:
                 created = raw
 
-        items.append({
-            "submission_id": s.get("id"),
-            "task_id": t["id"],
-            "title": t["title"],
-            "category": t.get("category"),
-            "status": status,
-            "status_label": STATUS_LABEL.get(status, status),
-            "points": points,
-            "comment": s.get("comment") or "",
-            "reason": s.get("reason") or "",
-            "created_at": created,
-        })
+        items.append(
+            {
+                "submission_id": s.get("id"),
+                "task_id": t["id"],
+                "title": t["title"],
+                "category": t.get("category"),
+                "status": status,
+                "status_label": STATUS_LABEL.get(status, status),
+                "points": points,
+                "comment": s.get("comment") or "",
+                "reason": s.get("reason") or "",
+                "created_at": created,
+            }
+        )
 
-    # новые сверху
     items.sort(key=lambda x: x["submission_id"] or 0, reverse=True)
 
     return templates.TemplateResponse(
+        request,
         "student/history.html",
         {
-            "request": request,
             "page_title": "История",
             "user": user,
             "active_nav": "history",
             "items": items,
         },
     )
+
 
 @router.get("/profile", response_class=HTMLResponse)
 def student_profile(request: Request):
@@ -349,9 +353,7 @@ def student_profile(request: Request):
     user = user_or_redirect
 
     with SessionLocal() as db:
-        db_user = db.scalar(
-            select(User).where(User.email == user["email"])
-        )
+        db_user = db.scalar(select(User).where(User.email == user["email"]))
         if not db_user:
             return RedirectResponse(url="/auth/login", status_code=303)
 
@@ -391,9 +393,9 @@ def student_profile(request: Request):
     }
 
     return templates.TemplateResponse(
+        request,
         "student/profile.html",
         {
-            "request": request,
             "page_title": "Профиль",
             "user": user,
             "profile": profile,
@@ -404,6 +406,7 @@ def student_profile(request: Request):
             "active_nav": "profile",
         },
     )
+
 
 @router.post("/profile", response_class=HTMLResponse)
 async def student_profile_save(request: Request):
@@ -474,9 +477,9 @@ async def student_profile_save(request: Request):
     }
 
     return templates.TemplateResponse(
+        request,
         "student/profile.html",
         {
-            "request": request,
             "page_title": "Мой профиль",
             "user": user,
             "active_nav": "student_profile",
@@ -489,5 +492,3 @@ async def student_profile_save(request: Request):
             "error": None,
         },
     )
-
-

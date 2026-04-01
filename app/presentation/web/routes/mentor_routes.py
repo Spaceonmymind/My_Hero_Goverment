@@ -58,9 +58,9 @@ def mentor_dashboard(request: Request):
         )
         if not mentor_profile:
             return templates.TemplateResponse(
+                request,
                 "mentor/dashboard.html",
                 {
-                    "request": request,
                     "page_title": "Кабинет наставника",
                     "user": user,
                     "active_nav": "mentor_dashboard",
@@ -154,9 +154,9 @@ def mentor_dashboard(request: Request):
                 )
 
     return templates.TemplateResponse(
+        request,
         "mentor/dashboard.html",
         {
-            "request": request,
             "page_title": "Кабинет наставника",
             "user": user,
             "active_nav": "mentor_dashboard",
@@ -216,9 +216,9 @@ def mentor_review_detail(request: Request, submission_id: int):
         ).all()
 
     return templates.TemplateResponse(
+        request,
         "mentor/review_detail.html",
         {
-            "request": request,
             "page_title": "Проверка задания",
             "user": user,
             "active_nav": "mentor_dashboard",
