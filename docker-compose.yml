@@ -25,7 +25,7 @@ services:
       db:
         condition: service_healthy
     env_file:
-      - .example.env
+      - .env
     environment:
       DATABASE_URL: postgresql+psycopg://myhero:myhero_pass@db:5432/myhero
     ports:
