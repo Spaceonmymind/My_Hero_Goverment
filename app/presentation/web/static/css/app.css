@@ -28,8 +28,13 @@
 }
 
 *{ box-sizing: border-box; }
-html,body{ height:100%; }
+
+html {
+  min-height: 100%;
+}
+
 body{
+  min-height: 100vh;
   margin:0;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, "Apple Color Emoji","Segoe UI Emoji";
   color: var(--text);
@@ -42,6 +47,7 @@ body{
 .container{
   width: min(var(--container), calc(100% - 32px));
   margin: 0 auto;
+  padding-bottom: 32px;
 }
 
 .topbar{
@@ -172,7 +178,24 @@ main.container{ padding: 22px 0 60px; }
   cursor:pointer;
   transition: transform .25s var(--ease), box-shadow .25s var(--ease), background .25s var(--ease);
   user-select:none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
+
+
+a.btn,
+a.btn:link,
+a.btn:visited,
+a.btn:hover,
+a.btn:active,
+.btn,
+.btn:hover,
+.btn:active {
+  text-decoration: none !important;
+}
+
+
 .btn:hover{
   transform: translateY(-1px);
   box-shadow: var(--shadow);
@@ -513,6 +536,15 @@ main.container{ padding: 22px 0 60px; }
 .form-label {
   font-size: 13px;
   opacity: 0.8;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form .row {
+
+  margin-top: 6px;
+
 }
 
 .form-textarea {

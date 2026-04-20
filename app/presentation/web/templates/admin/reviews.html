@@ -20,17 +20,17 @@
         </div>
       </div>
 
-      <div class="table mt">
-        <div class="table-head">
+      <div class="table mt review-table">
+        <div class="table-head review-table-head">
           <div>Ученик</div>
+          <div>Дата</div>
           <div>Задание</div>
-          <div class="right">Баллы</div>
-          <div class="right">Дата</div>
           <div class="right">Статус</div>
+          <div class="right">Баллы</div>
         </div>
 
         {% for r in reviews %}
-          <div class="table-row hoverlift review-row"
+          <div class="table-row hoverlift review-row review-table-row"
                data-href="/admin/reviews/{{ r.id }}"
                tabindex="0"
                role="link"
@@ -44,6 +44,8 @@
               <div class="muted truncate" style="font-size:13px;">{{ r.student_email }}</div>
             </div>
 
+            <div class="review-date">{{ r.submitted_at }}</div>
+
             <div class="truncate">
               <div class="truncate">{{ r.task_title }}</div>
               <div class="muted" style="font-size:13px;">
@@ -51,10 +53,7 @@
               </div>
             </div>
 
-            <div class="right mono">{{ r.points }}</div>
-            <div class="right muted">{{ r.submitted_at }}</div>
-
-            <div class="right">
+            <div class="review-status">
               {% if r.status == "pending" %}
                 <span class="badge badge-warn">Проверяется</span>
               {% elif r.status == "approved" %}
@@ -65,6 +64,8 @@
                 <span class="badge">{{ r.status }}</span>
               {% endif %}
             </div>
+
+            <div class="review-points mono">{{ r.points }}</div>
           </div>
         {% else %}
           <div class="muted" style="padding: 18px 4px;">
@@ -80,6 +81,45 @@
 
 <style>
   .gap-xs{ gap: 8px; }
+
+  .review-table-head,
+  .review-table-row{
+    display: grid;
+    grid-template-columns: minmax(260px, 2.3fr) 170px minmax(280px, 2.5fr) 140px 90px;
+    column-gap: 18px;
+    align-items: center;
+  }
+
+  .review-table-head{
+    padding: 12px 18px;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+
+  .review-table-row{
+    padding: 14px 18px;
+    min-height: 66px;
+  }
+
+  .review-date{
+    font-size: 14px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .review-points{
+    text-align: right;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    padding-right: 2px;
+  }
+
+  .review-status{
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+  }
 
   .review-row{
     cursor: pointer;

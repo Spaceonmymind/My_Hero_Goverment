@@ -242,9 +242,14 @@ async def mentor_review_action(request: Request, submission_id: int):
 
     with SessionLocal() as db:
         db_user = db.scalar(select(User).where(User.email == user["email"]))
+        if not db_user:
+            return RedirectResponse(url="/auth/login", status_code=303)
+
         mentor_profile = db.scalar(
             select(MentorProfile).where(MentorProfile.user_id == db_user.id)
         )
+        if not mentor_profile:
+            return RedirectResponse(url="/mentor", status_code=303)
 
         mentor_links = db.scalars(
             select(MentorClassLink).where(
@@ -254,7 +259,11 @@ async def mentor_review_action(request: Request, submission_id: int):
 
         class_group_ids = [l.class_group_id for l in mentor_links]
 
-        submission = db.get(TaskSubmission, submission_id)
+        submission = db.scalar(
+            select(TaskSubmission)
+            .where(TaskSubmission.id == submission_id)
+            .with_for_update()
+        )
         if not submission:
             return RedirectResponse(url="/mentor", status_code=303)
 
@@ -268,23 +277,30 @@ async def mentor_review_action(request: Request, submission_id: int):
             return RedirectResponse(url="/mentor", status_code=303)
 
         task = db.get(Task, submission.task_id)
+        if not task:
+            return RedirectResponse(url="/mentor", status_code=303)
 
         if action == "approve":
-            already_approved = submission.status == "approved"
-            submission.status = "approved"
-
-            if not already_approved:
-                student_profile.points_balance += task.points
-
-                db.add(
-                    PointsLedger(
-                        user_id=submission.user_id,
-                        submission_id=submission.id,
-                        points=task.points,
-                        reason=f"Зачтено задание: {task.title}",
-                        source_role="mentor",
+            if submission.status != "approved":
+                existing_ledger = db.scalar(
+                    select(PointsLedger).where(
+                        PointsLedger.submission_id == submission.id
                     )
                 )
+
+                submission.status = "approved"
+
+                if not existing_ledger:
+                    student_profile.points_balance += task.points
+                    db.add(
+                        PointsLedger(
+                            user_id=submission.user_id,
+                            submission_id=submission.id,
+                            points=task.points,
+                            reason=f"Зачтено задание: {task.title}",
+                            source_role="mentor",
+                        )
+                    )
 
         elif action == "reject":
             submission.status = "rejected"
