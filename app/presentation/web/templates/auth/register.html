@@ -1,0 +1,60 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<section class="grid reveal">
+  <div class="card card-hero">
+    <div class="card-content">
+      <div class="kicker">Регистрация</div>
+      <h2 class="h2">Создать аккаунт школьника</h2>
+      <p class="muted">Заполни данные, выбери школу и класс.</p>
+
+      {% if error %}
+        <div class="card" style="border:1px solid #f00; padding:12px; margin:12px 0;">
+          {{ error }}
+        </div>
+      {% endif %}
+
+      <form class="form" method="post" action="/auth/register">
+        <label class="field">
+          <span class="label">ФИО</span>
+          <input class="input" name="full_name" placeholder="Иванов Иван Иванович" value="{{ form.full_name or '' }}" required>
+        </label>
+
+        <label class="field">
+          <span class="label">Email</span>
+          <input class="input" type="email" name="email" placeholder="example@mail.ru" value="{{ form.email or '' }}" autocomplete="username" required>
+        </label>
+
+        <label class="field">
+          <span class="label">Пароль</span>
+          <input class="input" name="password" type="password" placeholder="Минимум 6 символов" autocomplete="new-password" required>
+        </label>
+
+        <label class="field">
+          <span class="label">Повтор пароля</span>
+          <input class="input" name="password_repeat" type="password" placeholder="Повтори пароль" autocomplete="new-password" required>
+        </label>
+
+        <label class="field">
+          <span class="label">Школа и класс</span>
+          <select class="input" name="class_group_id" required>
+            <option value="">Выбери школу и класс</option>
+            {% for class_group, school in class_groups %}
+              <option value="{{ class_group.id }}"
+                {% if form.class_group_id|string == class_group.id|string %}selected{% endif %}>
+                {{ school.name }} — {{ class_group.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <div class="row" style="margin-top: 16px;">
+          <button class="btn btn-primary btn-lg" type="submit">Зарегистрироваться</button>
+          <a class="btn btn-ghost btn-lg" href="/auth/login">Уже есть аккаунт</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
