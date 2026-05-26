@@ -1,95 +1,355 @@
 {% extends "layout.html" %}
 {% block content %}
 
+{% set total_points = task.points %}
+{% if submission.video_url %}
+  {% set total_points = total_points + task.video_bonus_points %}
+{% endif %}
+{% if files and files|length > 0 %}
+  {% set total_points = total_points + task.extra_files_bonus_points %}
+{% endif %}
+
 <section class="reveal stack" style="display:flex; flex-direction:column; gap:18px;">
 
   <div class="card">
     <div class="card-content">
+      <div class="row between" style="align-items:flex-start; gap:16px; flex-wrap:wrap;">
 
-      <h2 class="h2">{{ task.title }}</h2>
+        <div>
+          <div class="kicker">Проверка задания</div>
 
-      <div class="muted">
-        Ученик: {{ profile.full_name or student.email }}
+          <h2 class="h2">{{ task.title }}</h2>
+
+          <div class="muted mt-xxs">
+            Блок:
+            <span class="mono">{{ task.block }}</span>
+            ·
+            Категория:
+            <span class="mono">{{ task.category }}</span>
+          </div>
+        </div>
+
+        <div class="row" style="gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+          {% if submission.status == "pending" %}
+            <span class="pill">На проверке</span>
+          {% elif submission.status == "approved" %}
+            <span class="pill pill-ok">Принято</span>
+          {% elif submission.status == "rejected" %}
+            <span class="pill pill-bad">Отклонено</span>
+          {% endif %}
+        </div>
+
       </div>
-
-      <div style="margin-top:10px;">
-        Баллы за задание: <b>{{ task.points }}</b>
-      </div>
-
     </div>
   </div>
-
 
   <div class="card">
     <div class="card-content">
+      <div class="kicker">Расчет баллов</div>
 
-      <h3 class="h3">Комментарий ученика</h3>
+      <div class="score-grid mt">
+        <div class="score-item">
+          <div class="muted">Основные баллы</div>
+          <strong>{{ task.points }}</strong>
+        </div>
 
-      <div class="muted" style="margin-top:8px;">
-        {{ submission.comment or "Комментарий не указан" }}
+        <div class="score-item">
+          <div class="muted">Бонус за видеовизитку</div>
+          <strong>
+            {% if submission.video_url %}
+              +{{ task.video_bonus_points }}
+            {% else %}
+              0
+            {% endif %}
+          </strong>
+        </div>
+
+        <div class="score-item">
+          <div class="muted">Бонус за материалы</div>
+          <strong>
+            {% if files and files|length > 0 %}
+              +{{ task.extra_files_bonus_points }}
+            {% else %}
+              0
+            {% endif %}
+          </strong>
+        </div>
+
+        <div class="score-item score-total">
+          <div class="muted">Итого к начислению</div>
+          <strong>{{ total_points }}</strong>
+        </div>
       </div>
-
     </div>
   </div>
 
+  {% if team %}
+  <div class="card">
+    <div class="card-content">
+      <div class="kicker">Команда</div>
+
+      <h3 class="h3">{{ team.name }}</h3>
+
+      <div class="muted mt-xxs">
+        Участников: {{ team_members|length }}
+      </div>
+
+      <div class="stack mt">
+        {% for member in team_members %}
+          <div class="member-row">
+            <div>
+              <strong>
+                {{ member.profile.full_name if member.profile else member.user.email }}
+              </strong>
+
+              <div class="muted mt-xxs">
+                {{ member.user.email }}
+              </div>
+            </div>
+
+            {% if team.created_by_user_id == member.user.id %}
+              <span class="pill">Лидер</span>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="card">
+    <div class="card-content">
+      <div class="kicker">Ученик</div>
+
+      <h3 class="h3">
+        {{ profile.full_name or student.email }}
+      </h3>
+
+      <div class="muted mt-xxs">
+        {{ student.email }}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if submission.essay_text %}
+  <div class="card">
+    <div class="card-content">
+      <div class="kicker">Эссе</div>
+
+      <div class="muted mt-xxs">
+        {{ submission.essay_text|length }} знаков
+      </div>
+
+      <div class="comment-box mt">
+        {{ submission.essay_text }}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if submission.video_url %}
+  <div class="card">
+    <div class="card-content">
+      <div class="kicker">Видеовизитка</div>
+
+      <a
+        href="{{ submission.video_url }}"
+        target="_blank"
+        class="file-card mt"
+      >
+        <div>
+          <strong>Открыть видеовизитку</strong>
+          <div class="muted mt-xxs">{{ submission.video_url }}</div>
+        </div>
+
+        <span class="pill">
+          +{{ task.video_bonus_points }} баллов
+        </span>
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <div class="card-content">
+      <div class="kicker">Комментарий</div>
+
+      {% if submission.comment %}
+        <div class="comment-box mt">
+          {{ submission.comment }}
+        </div>
+      {% else %}
+        <div class="muted mt">
+          Комментарий отсутствует.
+        </div>
+      {% endif %}
+    </div>
+  </div>
 
   {% if files %}
   <div class="card">
     <div class="card-content">
+      <div class="kicker">Дополнительные материалы</div>
 
-      <h3 class="h3">Прикреплённые файлы</h3>
+      {% if task.extra_files_bonus_points > 0 %}
+        <div class="muted mt-xxs">
+          За наличие материалов будет начислен бонус:
+          +{{ task.extra_files_bonus_points }} баллов.
+        </div>
+      {% endif %}
 
-      <div style="display:grid; gap:8px; margin-top:12px;">
+      <div class="stack mt">
         {% for f in files %}
-          <a
-            href="{{ f.file_path }}"
-            target="_blank"
-            class="btn btn-ghost"
-            style="justify-content:flex-start;"
-          >
-            {{ f.original_name }}
+          <a href="{{ f.file_path }}" target="_blank" class="file-card">
+            <div>
+              <strong>{{ f.original_name }}</strong>
+              <div class="muted mt-xxs">
+                {{ (f.file_size / 1024)|round(1) }} KB
+              </div>
+            </div>
+
+            <span class="pill">Открыть</span>
           </a>
         {% endfor %}
       </div>
-
     </div>
   </div>
   {% endif %}
 
-
-  {% if submission.file_url %}
   <div class="card">
     <div class="card-content">
+      <div class="kicker">Решение</div>
 
-      <h3 class="h3">Файл</h3>
+      {% if submission.status == "approved" %}
+        <div class="pill pill-ok" style="width:max-content;">
+          Задание уже принято
+        </div>
+      {% else %}
+        <form method="post" class="row" style="gap:12px; flex-wrap:wrap;">
+          <button
+            name="action"
+            value="approve"
+            class="btn btn-primary"
+            type="submit"
+          >
+            Зачесть и начислить {{ total_points }} баллов
+          </button>
 
-      <a href="{{ submission.file_url }}" target="_blank" class="btn btn-ghost">
-        Скачать файл
-      </a>
-
-    </div>
-  </div>
-  {% endif %}
-
-
-  <div class="card">
-    <div class="card-content">
-
-      <form method="post" style="display:flex; gap:10px;">
-
-        <button name="action" value="approve" class="btn btn-primary">
-          Зачесть
-        </button>
-
-        <button name="action" value="reject" class="btn btn-danger">
-          Отклонить
-        </button>
-
-      </form>
-
+          <button
+            name="action"
+            value="reject"
+            class="btn btn-danger"
+            type="submit"
+          >
+            Отклонить
+          </button>
+        </form>
+      {% endif %}
     </div>
   </div>
 
 </section>
+
+<style>
+  .stack{
+    display:grid;
+    gap:12px;
+  }
+
+  .mt{
+    margin-top:16px;
+  }
+
+  .mt-xxs{
+    margin-top:6px;
+  }
+
+  .comment-box{
+    padding:16px;
+    border-radius:16px;
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.08);
+    white-space:pre-wrap;
+    line-height:1.5;
+  }
+
+  .member-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:16px;
+    padding:14px 0;
+    border-bottom:1px solid rgba(255,255,255,.06);
+  }
+
+  .member-row:last-child{
+    border-bottom:none;
+    padding-bottom:0;
+  }
+
+  .file-card{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:16px;
+    padding:16px;
+    border-radius:16px;
+    background:rgba(255,255,255,.03);
+    border:1px solid rgba(255,255,255,.08);
+    text-decoration:none;
+    color:inherit;
+    transition:.18s ease;
+    overflow:hidden;
+  }
+
+  .file-card:hover{
+    transform:translateY(-2px);
+    background:rgba(255,255,255,.05);
+  }
+
+  .file-card .muted{
+    word-break:break-all;
+  }
+
+  .score-grid{
+    display:grid;
+    grid-template-columns: repeat(4, minmax(160px, 1fr));
+    gap:12px;
+  }
+
+  .score-item{
+    padding:14px;
+    border-radius:16px;
+    background:rgba(255,255,255,.035);
+    border:1px solid rgba(255,255,255,.08);
+  }
+
+  .score-item strong{
+    display:block;
+    margin-top:6px;
+    font-size:22px;
+  }
+
+  .score-total{
+    background:rgba(124,92,255,.12);
+  }
+
+  @media (max-width: 900px){
+    .score-grid{
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 560px){
+    .score-grid{
+      grid-template-columns: 1fr;
+    }
+
+    .file-card{
+      align-items:flex-start;
+      flex-direction:column;
+    }
+  }
+</style>
 
 {% endblock %}

@@ -21,6 +21,23 @@ class Task(Base):
     points: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped["DateTime"] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    assignment_type: Mapped[str] = mapped_column(String(20), nullable=False, default="individual")
+    required_members: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    block: Mapped[str] = mapped_column(String(100), nullable=False, default="Общее")
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    is_intro: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_locked_by_intro: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    requires_essay: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    min_essay_len: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    max_essay_len: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    allows_video_link: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    video_bonus_points: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    allows_extra_files: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    extra_files_bonus_points: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
 class TaskSubmission(Base):
     __tablename__ = "task_submissions"
@@ -38,9 +55,76 @@ class TaskSubmission(Base):
         nullable=False,
         index=True
     )
+    team_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("task_teams.id"), nullable=True, index=True)
     comment: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    essay_text: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    video_url: Mapped[str] = mapped_column(String(500), nullable=False, default="")
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
     created_at: Mapped["DateTime"] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+class TaskTeam(Base):
+    __tablename__ = "task_teams"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    task_id: Mapped[int] = mapped_column(Integer, ForeignKey("tasks.id"), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="forming")
+    created_by_user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at: Mapped["DateTime"] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+class TaskTeamMember(Base):
+    __tablename__ = "task_team_members"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    team_id: Mapped[int] = mapped_column(Integer, ForeignKey("task_teams.id"), nullable=False, index=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    created_at: Mapped["DateTime"] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+class TaskMaterial(Base):
+    __tablename__ = "task_materials"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    task_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("tasks.id"),
+        nullable=False,
+        index=True
+    )
+
+    original_name: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False
+    )
+
+    stored_name: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False
+    )
+
+    file_path: Mapped[str] = mapped_column(
+        String(500),
+        nullable=False
+    )
+
+    content_type: Mapped[str] = mapped_column(
+        String(100),
+        nullable=False,
+        default=""
+    )
+
+    file_size: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0
+    )
+
+    created_at: Mapped["DateTime"] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False
+    )
+
 
 class StudentProfile(Base):
     __tablename__ = "student_profiles"

@@ -1,0 +1,90 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<section class="reveal stack" style="display:flex; flex-direction:column; gap:16px;">
+
+  <div class="card">
+    <div class="card-content">
+
+      <div class="row between" style="gap:16px; flex-wrap:wrap; align-items:flex-start;">
+        <div>
+          <div class="kicker">Рейтинг</div>
+          <h2 class="h2">Общий рейтинг участников</h2>
+
+          <p class="muted mt-xxs">
+            Рейтинг формируется по количеству набранных баллов.
+          </p>
+        </div>
+
+        {% if current_position %}
+          <div class="pill pill-ok">
+            Ваше место: #{{ current_position }}
+          </div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-content table-wrap">
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width:80px;">Место</th>
+            <th>Участник</th>
+            <th>Школа</th>
+            <th>Класс</th>
+            <th style="text-align:right;">Баллы</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for item in rating %}
+            <tr {% if item.is_current %}style="background:rgba(124,92,255,.12);"{% endif %}>
+              <td>
+                <span class="mono">#{{ item.position }}</span>
+              </td>
+
+              <td>
+                <strong>{{ item.full_name }}</strong>
+                <div class="muted" style="font-size:13px;">
+                  {{ item.email }}
+                </div>
+              </td>
+
+              <td>
+                {{ item.school_name or "—" }}
+              </td>
+
+              <td>
+                {{ item.class_name or "—" }}
+              </td>
+
+              <td style="text-align:right;">
+                <strong class="mono">{{ item.points }}</strong>
+              </td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="5" class="muted">
+                Пока в рейтинге нет участников.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+    </div>
+  </div>
+
+</section>
+
+<style>
+  .mt-xxs {
+    margin-top: 6px;
+  }
+</style>
+
+{% endblock %}

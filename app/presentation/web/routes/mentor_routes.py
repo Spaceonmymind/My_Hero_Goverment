@@ -15,6 +15,8 @@ from app.infra.models import (
     Task,
     PointsLedger,
     SubmissionFile,
+    TaskTeam,
+    TaskTeamMember,
 )
 
 
@@ -47,15 +49,14 @@ def mentor_dashboard(request: Request):
     user = user_or_redirect
 
     with SessionLocal() as db:
-        db_user = db.scalar(
-            select(User).where(User.email == user["email"])
-        )
+        db_user = db.scalar(select(User).where(User.email == user["email"]))
         if not db_user:
             return RedirectResponse(url="/auth/login", status_code=303)
 
         mentor_profile = db.scalar(
             select(MentorProfile).where(MentorProfile.user_id == db_user.id)
         )
+
         if not mentor_profile:
             return templates.TemplateResponse(
                 request,
@@ -79,6 +80,9 @@ def mentor_dashboard(request: Request):
         class_group_ids = [link.class_group_id for link in mentor_links]
 
         class_groups = []
+        students = []
+        student_user_ids = []
+
         if class_group_ids:
             class_groups = db.execute(
                 select(ClassGroup, School)
@@ -87,10 +91,6 @@ def mentor_dashboard(request: Request):
                 .order_by(School.name, ClassGroup.name)
             ).all()
 
-        students = []
-        student_user_ids = []
-
-        if class_group_ids:
             student_profiles = db.scalars(
                 select(StudentProfile).where(
                     StudentProfile.class_group_id.in_(class_group_ids)
@@ -132,20 +132,47 @@ def mentor_dashboard(request: Request):
                 )
 
         reviews = []
+
         if student_user_ids:
             rows = db.execute(
-                select(TaskSubmission, Task, User)
+                select(TaskSubmission, Task)
                 .join(Task, Task.id == TaskSubmission.task_id)
-                .join(User, User.id == TaskSubmission.user_id)
-                .where(TaskSubmission.user_id.in_(student_user_ids))
                 .order_by(TaskSubmission.created_at.desc())
             ).all()
 
-            for sub, task, student in rows:
+            for sub, task in rows:
+                review_student = ""
+                review_student_email = ""
+
+                if sub.team_id:
+                    members = db.scalars(
+                        select(TaskTeamMember).where(
+                            TaskTeamMember.team_id == sub.team_id
+                        )
+                    ).all()
+
+                    member_ids = [m.user_id for m in members]
+
+                    if not any(member_id in student_user_ids for member_id in member_ids):
+                        continue
+
+                    team = db.get(TaskTeam, sub.team_id)
+                    review_student = f"Команда: {team.name if team else f'#{sub.team_id}'}"
+                    review_student_email = f"{len(member_ids)} участн."
+
+                else:
+                    if sub.user_id not in student_user_ids:
+                        continue
+
+                    student = db.get(User, sub.user_id)
+                    review_student = student.email if student else "Ученик"
+                    review_student_email = student.email if student else ""
+
                 reviews.append(
                     {
                         "id": sub.id,
-                        "student": student.email,
+                        "student": review_student,
+                        "student_email": review_student_email,
                         "task_title": task.title,
                         "points": task.points,
                         "submitted_at": sub.created_at.strftime("%Y-%m-%d %H:%M") if sub.created_at else "",
@@ -199,15 +226,60 @@ def mentor_review_detail(request: Request, submission_id: int):
         if not submission:
             return RedirectResponse(url="/mentor", status_code=303)
 
-        student_profile = db.scalar(
-            select(StudentProfile).where(StudentProfile.user_id == submission.user_id)
-        )
-
-        if not student_profile or student_profile.class_group_id not in class_group_ids:
+        task = db.get(Task, submission.task_id)
+        if not task:
             return RedirectResponse(url="/mentor", status_code=303)
 
-        task = db.get(Task, submission.task_id)
         student = db.get(User, submission.user_id)
+
+        student_profile = db.scalar(
+            select(StudentProfile).where(
+                StudentProfile.user_id == submission.user_id
+            )
+        )
+
+        team = None
+        team_members = []
+
+        if submission.team_id:
+            team = db.get(TaskTeam, submission.team_id)
+
+            members = db.scalars(
+                select(TaskTeamMember)
+                .where(TaskTeamMember.team_id == submission.team_id)
+                .order_by(TaskTeamMember.id.asc())
+            ).all()
+
+            allowed = False
+
+            for member in members:
+                member_user = db.get(User, member.user_id)
+
+                member_profile = db.scalar(
+                    select(StudentProfile).where(
+                        StudentProfile.user_id == member.user_id
+                    )
+                )
+
+                if member_profile and member_profile.class_group_id in class_group_ids:
+                    allowed = True
+
+                team_members.append(
+                    {
+                        "user": member_user,
+                        "profile": member_profile,
+                    }
+                )
+
+            if not allowed:
+                return RedirectResponse(url="/mentor", status_code=303)
+
+        else:
+            if (
+                not student_profile
+                or student_profile.class_group_id not in class_group_ids
+            ):
+                return RedirectResponse(url="/mentor", status_code=303)
 
         files = db.scalars(
             select(SubmissionFile)
@@ -227,27 +299,37 @@ def mentor_review_detail(request: Request, submission_id: int):
             "student": student,
             "profile": student_profile,
             "files": files,
+            "team": team,
+            "team_members": team_members,
         },
     )
 
 @router.post("/reviews/{submission_id}")
 async def mentor_review_action(request: Request, submission_id: int):
     user_or_redirect = _require_mentor(request)
+
     if not isinstance(user_or_redirect, dict):
         return user_or_redirect
 
     user = user_or_redirect
+
     form = await request.form()
     action = form.get("action")
 
     with SessionLocal() as db:
-        db_user = db.scalar(select(User).where(User.email == user["email"]))
+        db_user = db.scalar(
+            select(User).where(User.email == user["email"])
+        )
+
         if not db_user:
             return RedirectResponse(url="/auth/login", status_code=303)
 
         mentor_profile = db.scalar(
-            select(MentorProfile).where(MentorProfile.user_id == db_user.id)
+            select(MentorProfile).where(
+                MentorProfile.user_id == db_user.id
+            )
         )
+
         if not mentor_profile:
             return RedirectResponse(url="/mentor", status_code=303)
 
@@ -264,46 +346,116 @@ async def mentor_review_action(request: Request, submission_id: int):
             .where(TaskSubmission.id == submission_id)
             .with_for_update()
         )
+
         if not submission:
-            return RedirectResponse(url="/mentor", status_code=303)
-
-        student_profile = db.scalar(
-            select(StudentProfile).where(
-                StudentProfile.user_id == submission.user_id
-            )
-        )
-
-        if not student_profile or student_profile.class_group_id not in class_group_ids:
             return RedirectResponse(url="/mentor", status_code=303)
 
         task = db.get(Task, submission.task_id)
         if not task:
             return RedirectResponse(url="/mentor", status_code=303)
 
+        # Проверяем, что наставник имеет право проверять эту отправку
+        student_profile = db.scalar(
+            select(StudentProfile).where(
+                StudentProfile.user_id == submission.user_id
+            )
+        )
+
+        team_members = []
+
+        if submission.team_id:
+            team_members = db.scalars(
+                select(TaskTeamMember).where(
+                    TaskTeamMember.team_id == submission.team_id
+                )
+            ).all()
+
+            allowed = False
+
+            for member in team_members:
+                member_profile = db.scalar(
+                    select(StudentProfile).where(
+                        StudentProfile.user_id == member.user_id
+                    )
+                )
+
+                if (
+                    member_profile
+                    and member_profile.class_group_id in class_group_ids
+                ):
+                    allowed = True
+                    break
+
+            if not allowed:
+                return RedirectResponse(url="/mentor", status_code=303)
+
+        else:
+            if (
+                not student_profile
+                or student_profile.class_group_id not in class_group_ids
+            ):
+                return RedirectResponse(url="/mentor", status_code=303)
+
         if action == "approve":
-            if submission.status != "approved":
+            already_approved = submission.status == "approved"
+            submission.status = "approved"
+
+            if not already_approved:
                 existing_ledger = db.scalar(
                     select(PointsLedger).where(
                         PointsLedger.submission_id == submission.id
                     )
                 )
 
-                submission.status = "approved"
-
                 if not existing_ledger:
-                    student_profile.points_balance += task.points
-                    db.add(
-                        PointsLedger(
-                            user_id=submission.user_id,
-                            submission_id=submission.id,
-                            points=task.points,
-                            reason=f"Зачтено задание: {task.title}",
-                            source_role="mentor",
+                    files_count = db.query(SubmissionFile).filter(
+                        SubmissionFile.submission_id == submission.id
+                    ).count()
+
+                    total_points = task.points
+
+                    if submission.video_url:
+                        total_points += task.video_bonus_points
+
+                    if files_count > 0:
+                        total_points += task.extra_files_bonus_points
+
+                    if submission.team_id:
+                        for member in team_members:
+                            member_profile = db.scalar(
+                                select(StudentProfile).where(
+                                    StudentProfile.user_id == member.user_id
+                                )
+                            )
+
+                            if member_profile:
+                                member_profile.points_balance += total_points
+
+                            db.add(
+                                PointsLedger(
+                                    user_id=member.user_id,
+                                    submission_id=submission.id,
+                                    points=total_points,
+                                    reason=f"Командное задание: {task.title}",
+                                    source_role="mentor",
+                                )
+                            )
+                    else:
+                        student_profile.points_balance += total_points
+
+                        db.add(
+                            PointsLedger(
+                                user_id=submission.user_id,
+                                submission_id=submission.id,
+                                points=total_points,
+                                reason=f"Зачтено задание: {task.title}",
+                                source_role="mentor",
+                            )
                         )
-                    )
 
         elif action == "reject":
-            submission.status = "rejected"
+            if submission.status != "approved":
+                submission.status = "rejected"
 
         db.commit()
 

@@ -3,8 +3,10 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from app.presentation.web.templates_env import templates
 from sqlalchemy import select
 from app.infra.db import SessionLocal
-from app.infra.models import User, Task, StudentProfile, TaskSubmission, SubmissionFile, School, ClassGroup, MentorProfile, MentorClassLink, PointsLedger
+from app.infra.models import User, Task, StudentProfile, TaskSubmission, SubmissionFile, School, ClassGroup, MentorProfile, MentorClassLink, PointsLedger, TaskMaterial
 from app.infra.security import hash_password
+import uuid
+from pathlib import Path
 
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -68,10 +70,13 @@ def admin_tasks(request: Request):
     user_or_redirect = _require_admin(request)
     if not isinstance(user_or_redirect, dict):
         return user_or_redirect
+
     user = user_or_redirect
 
     with SessionLocal() as db:
-        tasks = db.scalars(select(Task).order_by(Task.id.desc())).all()
+        tasks = db.scalars(
+            select(Task).order_by(Task.sort_order.asc(), Task.id.desc())
+        ).all()
 
     return templates.TemplateResponse(
         request,
@@ -89,32 +94,111 @@ def admin_tasks(request: Request):
                 "category": "Общее",
                 "points": 0,
                 "is_active": True,
+                "assignment_type": "individual",
+                "required_members": 1,
+
+                "block": "Общее",
+                "sort_order": 0,
+                "is_intro": False,
+                "is_locked_by_intro": True,
+
+                "requires_essay": False,
+                "min_essay_len": 0,
+                "max_essay_len": 0,
+
+                "allows_video_link": False,
+                "video_bonus_points": 0,
+
+                "allows_extra_files": True,
+                "extra_files_bonus_points": 0,
             },
         },
     )
+
 
 @router.post("/tasks", response_class=HTMLResponse)
 async def admin_tasks_create(request: Request):
     user_or_redirect = _require_admin(request)
     if not isinstance(user_or_redirect, dict):
         return user_or_redirect
+
     user = user_or_redirect
 
     form = await request.form()
+
     title = (form.get("title") or "").strip()
     description = (form.get("description") or "").strip()
     category = (form.get("category") or "Общее").strip()
     points_raw = form.get("points") or "0"
+
+    assignment_type = (form.get("assignment_type") or "individual").strip()
+    required_members_raw = form.get("required_members") or "1"
+
     is_active = form.get("is_active") == "on"
+
+    block = (form.get("block") or "Общее").strip()
+    sort_order_raw = form.get("sort_order") or "0"
+
+    is_intro = form.get("is_intro") == "on"
+    is_locked_by_intro = form.get("is_locked_by_intro") == "on"
+
+    requires_essay = form.get("requires_essay") == "on"
+    min_essay_len_raw = form.get("min_essay_len") or "0"
+    max_essay_len_raw = form.get("max_essay_len") or "0"
+
+    allows_video_link = form.get("allows_video_link") == "on"
+    video_bonus_points_raw = form.get("video_bonus_points") or "0"
+
+    allows_extra_files = form.get("allows_extra_files") == "on"
+    extra_files_bonus_points_raw = form.get("extra_files_bonus_points") or "0"
+
+    material_title = (form.get("material_title") or "").strip()
+
+    uploaded_materials = []
+    for value in form.getlist("materials"):
+        if hasattr(value, "filename") and value.filename:
+            uploaded_materials.append(value)
 
     try:
         points = int(points_raw)
     except ValueError:
         points = -1
 
+    try:
+        required_members = int(required_members_raw)
+    except ValueError:
+        required_members = 0
+
+    try:
+        sort_order = int(sort_order_raw)
+    except ValueError:
+        sort_order = -1
+
+    try:
+        min_essay_len = int(min_essay_len_raw)
+    except ValueError:
+        min_essay_len = -1
+
+    try:
+        max_essay_len = int(max_essay_len_raw)
+    except ValueError:
+        max_essay_len = -1
+
+    try:
+        video_bonus_points = int(video_bonus_points_raw)
+    except ValueError:
+        video_bonus_points = -1
+
+    try:
+        extra_files_bonus_points = int(extra_files_bonus_points_raw)
+    except ValueError:
+        extra_files_bonus_points = -1
+
     def render(error=None, success=None):
         with SessionLocal() as db:
-            tasks = db.scalars(select(Task).order_by(Task.id.desc())).all()
+            tasks = db.scalars(
+                select(Task).order_by(Task.sort_order.asc(), Task.id.desc())
+            ).all()
 
         return templates.TemplateResponse(
             request,
@@ -132,6 +216,25 @@ async def admin_tasks_create(request: Request):
                     "category": category,
                     "points": points_raw,
                     "is_active": is_active,
+                    "assignment_type": assignment_type,
+                    "required_members": required_members_raw,
+
+                    "block": block,
+                    "sort_order": sort_order_raw,
+                    "is_intro": is_intro,
+                    "is_locked_by_intro": is_locked_by_intro,
+
+                    "requires_essay": requires_essay,
+                    "min_essay_len": min_essay_len_raw,
+                    "max_essay_len": max_essay_len_raw,
+
+                    "allows_video_link": allows_video_link,
+                    "video_bonus_points": video_bonus_points_raw,
+
+                    "allows_extra_files": allows_extra_files,
+                    "extra_files_bonus_points": extra_files_bonus_points_raw,
+
+                    "material_title": material_title,
                 },
             },
             status_code=400 if error else 200,
@@ -139,8 +242,43 @@ async def admin_tasks_create(request: Request):
 
     if not title:
         return render(error="Укажи название задания.")
+
     if points < 0:
         return render(error="Баллы должны быть числом 0 или больше.")
+
+    if assignment_type not in ("individual", "team"):
+        return render(error="Некорректный тип задания.")
+
+    if required_members < 1:
+        return render(error="Количество участников должно быть больше 0.")
+
+    if assignment_type == "team" and required_members < 2:
+        return render(error="Для группового задания нужно минимум 2 участника.")
+
+    if assignment_type == "individual":
+        required_members = 1
+        required_members_raw = "1"
+
+    if not block:
+        return render(error="Укажи блок задания.")
+
+    if sort_order < 0:
+        return render(error="Порядок сортировки должен быть 0 или больше.")
+
+    if min_essay_len < 0 or max_essay_len < 0:
+        return render(error="Ограничения эссе должны быть 0 или больше.")
+
+    if requires_essay and max_essay_len and min_essay_len > max_essay_len:
+        return render(error="Минимальная длина эссе не может быть больше максимальной.")
+
+    if video_bonus_points < 0:
+        return render(error="Бонус за видеовизитку должен быть 0 или больше.")
+
+    if extra_files_bonus_points < 0:
+        return render(error="Бонус за дополнительные материалы должен быть 0 или больше.")
+
+    if is_intro:
+        is_locked_by_intro = False
 
     with SessionLocal() as db:
         task = Task(
@@ -149,8 +287,54 @@ async def admin_tasks_create(request: Request):
             category=category or "Общее",
             points=points,
             is_active=is_active,
+            assignment_type=assignment_type,
+            required_members=required_members,
+
+            block=block,
+            sort_order=sort_order,
+            is_intro=is_intro,
+            is_locked_by_intro=is_locked_by_intro,
+
+            requires_essay=requires_essay,
+            min_essay_len=min_essay_len,
+            max_essay_len=max_essay_len,
+
+            allows_video_link=allows_video_link,
+            video_bonus_points=video_bonus_points,
+
+            allows_extra_files=allows_extra_files,
+            extra_files_bonus_points=extra_files_bonus_points,
         )
+
         db.add(task)
+        db.flush()
+
+        if uploaded_materials:
+            upload_dir = Path("uploads/task_materials")
+            upload_dir.mkdir(parents=True, exist_ok=True)
+
+            for file in uploaded_materials:
+                ext = Path(file.filename).suffix
+                stored_name = f"{uuid.uuid4().hex}{ext}"
+                file_path = upload_dir / stored_name
+
+                content = await file.read()
+                file_size = len(content)
+
+                with open(file_path, "wb") as f:
+                    f.write(content)
+
+                db.add(
+                    TaskMaterial(
+                        task_id=task.id,
+                        original_name=file.filename,
+                        stored_name=stored_name,
+                        file_path=f"/uploads/task_materials/{stored_name}",
+                        content_type=file.content_type or "",
+                        file_size=file_size,
+                    )
+                )
+
         db.commit()
 
     return render(success="Задание создано.")
@@ -186,26 +370,29 @@ def admin_task_delete(request: Request, task_id: int):
 
 @router.get("/tasks/{task_id}", response_class=HTMLResponse)
 def admin_task_detail(request: Request, task_id: int):
+
     user_or_redirect = _require_admin(request)
+
     if not isinstance(user_or_redirect, dict):
         return user_or_redirect
+
     user = user_or_redirect
 
-    # MVP-заглушка: ищем в локальном списке
-    tasks = [
-        {"id": 1, "title": "Участие в акции", "category": "События", "points": 20, "active": True},
-        {"id": 2, "title": "Посещение кружка", "category": "Образование", "points": 15, "active": True},
-        {"id": 3, "title": "Волонтёрство", "category": "Соц. активность", "points": 50, "active": False},
-    ]
-    task = next((t for t in tasks if t["id"] == task_id), None)
-    if not task:
-        return RedirectResponse(url="/admin/tasks", status_code=303)
+    with SessionLocal() as db:
+
+        task = db.get(Task, task_id)
+
+        if not task:
+            return RedirectResponse(
+                url="/admin/tasks",
+                status_code=303
+            )
 
     return templates.TemplateResponse(
         request,
         "admin/task_detail.html",
         {
-            "page_title": f"Задание #{task_id}",
+            "page_title": f"Задание #{task.id}",
             "user": user,
             "active_nav": "admin_tasks",
             "task": task,
@@ -258,6 +445,7 @@ def admin_review_detail(request: Request, review_id: int):
     user_or_redirect = _require_admin(request)
     if not isinstance(user_or_redirect, dict):
         return user_or_redirect
+
     user = user_or_redirect
 
     with SessionLocal() as db:
@@ -279,16 +467,31 @@ def admin_review_detail(request: Request, review_id: int):
             .order_by(SubmissionFile.id.desc())
         ).all()
 
+    total_points = task.points
+
+    if sub.video_url:
+        total_points += task.video_bonus_points
+
+    if files:
+        total_points += task.extra_files_bonus_points
+
     review = {
         "id": sub.id,
         "student": student.email,
         "student_email": student.email,
         "task_id": task.id,
         "task_title": task.title,
-        "points": task.points,
+        "task_block": task.block,
+        "task_category": task.category,
+        "base_points": task.points,
+        "video_bonus_points": task.video_bonus_points if sub.video_url else 0,
+        "extra_files_bonus_points": task.extra_files_bonus_points if files else 0,
+        "total_points": total_points,
         "submitted_at": sub.created_at.strftime("%Y-%m-%d %H:%M") if sub.created_at else "",
         "status": sub.status,
         "comment": sub.comment,
+        "essay_text": sub.essay_text,
+        "video_url": sub.video_url,
         "files": files,
     }
 

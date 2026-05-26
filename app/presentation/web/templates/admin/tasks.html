@@ -11,42 +11,171 @@
       {% if error %}
         <div class="toast toast-error">{{ error }}</div>
       {% endif %}
+
       {% if success %}
         <div class="toast toast-success">{{ success }}</div>
       {% endif %}
 
-      <form class="form" method="post" action="/admin/tasks" style="margin-top:16px;">
-        <div class="row" style="gap:12px; align-items:flex-end; flex-wrap:wrap;">
+      <form class="form" method="post" action="/admin/tasks" enctype="multipart/form-data" style="margin-top:16px;">
 
+        <div class="row form-row">
           <label class="field" style="flex:2; min-width:260px;">
             <span class="label">Название</span>
-            <input class="input" name="title" value="{{ form.title }}" placeholder="Например, участие в олимпиаде"/>
+            <input class="input" name="title" value="{{ form.title }}" placeholder="Например, Представь себя" />
           </label>
 
-          <label class="field" style="flex:1; min-width:180px;">
-            <span class="label">Категория</span>
-            <input class="input" name="category" value="{{ form.category }}" placeholder="Общее"/>
+          <label class="field" style="flex:1; min-width:220px;">
+            <span class="label">Блок</span>
+            <input class="input" name="block" value="{{ form.block }}" placeholder="Например, История" />
           </label>
 
-          <label class="field" style="width:140px;">
+          <label class="field" style="width:150px;">
+            <span class="label">Порядок</span>
+            <input class="input" type="number" min="0" name="sort_order" value="{{ form.sort_order }}" />
+          </label>
+
+          <label class="field" style="width:160px;">
             <span class="label">Баллы</span>
-            <input class="input" type="number" min="0" name="points" value="{{ form.points }}"/>
+            <input class="input" type="number" min="0" name="points" value="{{ form.points }}" />
+          </label>
+        </div>
+
+        <div class="row form-row">
+          <label class="field" style="flex:1; min-width:220px;">
+            <span class="label">Категория</span>
+            <input class="input" name="category" value="{{ form.category }}" placeholder="Общее" />
+          </label>
+
+          <label class="field" style="width:220px;">
+            <span class="label">Тип выполнения</span>
+            <select class="input" name="assignment_type" id="assignmentType">
+              <option value="individual" {% if form.assignment_type == "individual" %}selected{% endif %}>Индивидуальное</option>
+              <option value="team" {% if form.assignment_type == "team" %}selected{% endif %}>Групповое</option>
+            </select>
+          </label>
+
+          <label class="field" style="width:170px;" id="membersField">
+            <span class="label">Участников</span>
+            <input class="input" type="number" min="2" name="required_members" value="{{ form.required_members or 2 }}" />
           </label>
         </div>
 
         <label class="field" style="margin-top:12px;">
           <span class="label">Описание</span>
-          <textarea class="input" name="description" rows="4" placeholder="Описание задания">{{ form.description }}</textarea>
+          <textarea class="input textarea-fixed" name="description" rows="5" placeholder="Описание задания">{{ form.description }}</textarea>
         </label>
 
-        <div class="row" style="gap:12px; align-items:center; margin-top:12px;">
-          <label class="row" style="gap:8px; align-items:center;">
-            <input type="checkbox" name="is_active" {% if form.is_active %}checked{% endif %}/>
-            <span>Активно</span>
-          </label>
+        <div class="card inner-card">
+          <div class="card-content">
+            <div class="kicker">Доступ и логика</div>
 
+            <div class="row form-row">
+              <label class="check-line">
+                <input type="checkbox" name="is_active" {% if form.is_active %}checked{% endif %} />
+                <span>Активно</span>
+              </label>
+
+              <label class="check-line">
+                <input type="checkbox" name="is_intro" {% if form.is_intro %}checked{% endif %} />
+                <span>Стартовое задание «Представь себя»</span>
+              </label>
+
+              <label class="check-line">
+                <input type="checkbox" name="is_locked_by_intro" {% if form.is_locked_by_intro %}checked{% endif %} />
+                <span>Закрыто до выполнения стартового задания</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="card inner-card">
+          <div class="card-content">
+            <div class="kicker">Требования к сдаче</div>
+
+            <div class="row form-row">
+              <label class="check-line">
+                <input type="checkbox" name="requires_essay" {% if form.requires_essay %}checked{% endif %} />
+                <span>Требуется эссе</span>
+              </label>
+
+              <label class="field small-field">
+                <span class="label">Мин. знаков</span>
+                <input class="input" type="number" min="0" name="min_essay_len" value="{{ form.min_essay_len }}" />
+              </label>
+
+              <label class="field small-field">
+                <span class="label">Макс. знаков</span>
+                <input class="input" type="number" min="0" name="max_essay_len" value="{{ form.max_essay_len }}" />
+              </label>
+            </div>
+
+            <div class="row form-row">
+              <label class="check-line">
+                <input type="checkbox" name="allows_video_link" {% if form.allows_video_link %}checked{% endif %} />
+                <span>Разрешить ссылку на видеовизитку</span>
+              </label>
+
+              <label class="field small-field">
+                <span class="label">Бонус за видео</span>
+                <input class="input" type="number" min="0" name="video_bonus_points" value="{{ form.video_bonus_points }}" />
+              </label>
+            </div>
+
+            <div class="row form-row">
+              <label class="check-line">
+                <input type="checkbox" name="allows_extra_files" {% if form.allows_extra_files %}checked{% endif %} />
+                <span>Разрешить доп. материалы</span>
+              </label>
+
+              <label class="field small-field">
+                <span class="label">Бонус за материалы</span>
+                <input class="input" type="number" min="0" name="extra_files_bonus_points" value="{{ form.extra_files_bonus_points }}" />
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="card inner-card">
+          <div class="card-content">
+            <div class="kicker">Шаблоны и материалы к заданию</div>
+
+            <p class="muted mt-xs">
+              Можно приложить шаблон, методичку, пример заполнения, бланк или другой файл, который студент сможет скачать на странице задания.
+            </p>
+
+            <div class="row form-row">
+              <label class="field" style="flex:1; min-width:260px;">
+                <span class="label">Название материала</span>
+                <input
+                  class="input"
+                  name="material_title"
+                  value="{{ form.material_title }}"
+                  placeholder="Например, шаблон эссе"
+                />
+              </label>
+
+              <label class="field" style="flex:2; min-width:320px;">
+                <span class="label">Файлы шаблонов</span>
+                <input
+                  class="input"
+                  type="file"
+                  name="materials"
+                  multiple
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png"
+                />
+              </label>
+            </div>
+
+            <div class="muted" style="margin-top:8px; font-size:13px;">
+              Если приложить несколько файлов, всем будет присвоено одно название материала. Если название не указано, будет использовано имя файла.
+            </div>
+          </div>
+        </div>
+
+        <div class="row" style="gap:12px; align-items:center; margin-top:12px;">
           <button class="btn btn-primary" type="submit">Создать задание</button>
         </div>
+
       </form>
     </div>
   </div>
@@ -58,27 +187,63 @@
           <tr>
             <th class="col-id">ID</th>
             <th>Название</th>
+            <th>Блок</th>
             <th>Категория</th>
+            <th>Тип</th>
             <th>Баллы</th>
+            <th>Логика</th>
             <th>Статус</th>
-            <th class="col-created">Создано</th>
             <th class="col-actions">Действия</th>
           </tr>
         </thead>
+
         <tbody>
           {% for t in tasks %}
           <tr>
             <td class="col-id">{{ t.id }}</td>
-            <td>{{ t.title }}</td>
+
+            <td>
+              <strong>{{ t.title }}</strong>
+              <div class="muted" style="font-size:13px;">Порядок: {{ t.sort_order }}</div>
+            </td>
+
+            <td>{{ t.block }}</td>
             <td>{{ t.category }}</td>
+
+            <td>
+              {% if t.assignment_type == "team" %}
+                <span class="pill">Групповое · {{ t.required_members }} чел.</span>
+              {% else %}
+                <span class="pill">Индивидуальное</span>
+              {% endif %}
+            </td>
+
             <td>{{ t.points }}</td>
+
+            <td>
+              <div class="stack-mini">
+                {% if t.is_intro %}
+                  <span class="pill pill-ok">Стартовое</span>
+                {% endif %}
+                {% if t.is_locked_by_intro %}
+                  <span class="pill">После intro</span>
+                {% endif %}
+                {% if t.requires_essay %}
+                  <span class="pill">Эссе {{ t.min_essay_len }}–{{ t.max_essay_len }}</span>
+                {% endif %}
+                {% if t.allows_video_link %}
+                  <span class="pill">Видео +{{ t.video_bonus_points }}</span>
+                {% endif %}
+                {% if t.allows_extra_files %}
+                  <span class="pill">Материалы +{{ t.extra_files_bonus_points }}</span>
+                {% endif %}
+              </div>
+            </td>
+
             <td>
               <span class="pill">{{ "Активно" if t.is_active else "Выключено" }}</span>
             </td>
-            <td class="col-created">
-              <div class="dt">{{ t.created_at.strftime("%Y-%m-%d") if t.created_at else "" }}</div>
-              <div class="tm muted">{{ t.created_at.strftime("%H:%M:%S") if t.created_at else "" }}</div>
-            </td>
+
             <td class="col-actions">
               <div class="row" style="gap:8px; flex-wrap:wrap;">
                 <form method="post" action="/admin/tasks/{{ t.id }}/toggle" style="display:inline;">
@@ -97,7 +262,7 @@
           </tr>
           {% else %}
           <tr>
-            <td colspan="7" class="muted">Пока заданий нет.</td>
+            <td colspan="9" class="muted">Пока заданий нет.</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -106,5 +271,68 @@
   </div>
 
 </section>
+
+<script>
+  function toggleMembersField() {
+    const type = document.getElementById("assignmentType")?.value;
+    const field = document.getElementById("membersField");
+    const input = field?.querySelector("input");
+
+    if (!field || !input) return;
+
+    if (type === "team") {
+      field.style.display = "";
+      input.disabled = false;
+      if (!input.value || Number(input.value) < 2) input.value = 2;
+    } else {
+      field.style.display = "none";
+      input.disabled = true;
+      input.value = 1;
+    }
+  }
+
+  document.getElementById("assignmentType")?.addEventListener("change", toggleMembersField);
+  toggleMembersField();
+</script>
+
+<style>
+  .form-row {
+    gap: 12px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  .textarea-fixed {
+    width: 100%;
+    max-width: 100%;
+    min-width: 100%;
+    resize: vertical;
+  }
+
+  .inner-card {
+    margin-top: 14px;
+    background: rgba(255,255,255,.025);
+    border: 1px solid rgba(255,255,255,.08);
+  }
+
+  .check-line {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .small-field {
+    width: 170px;
+  }
+
+  .stack-mini {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+  }
+</style>
 
 {% endblock %}

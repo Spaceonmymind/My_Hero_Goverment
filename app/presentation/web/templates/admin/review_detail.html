@@ -10,41 +10,55 @@
         <div>
           <div class="kicker">Проверка</div>
           <h2 class="h2">Заявка #{{ review.id }}</h2>
+
           <div class="muted mt-xxs">
-            {{ review.submitted_at }} · Баллы: <span class="mono">{{ review.points }}</span>
+            {{ review.submitted_at }}
+            ·
+            Итого:
+            <span class="mono">{{ review.total_points }}</span>
+            баллов
           </div>
         </div>
 
-        <div class="row gap-sm">
-          <a class="btn btn-ghost" href="/admin/reviews">Назад</a>
-        </div>
+        <a class="btn btn-ghost" href="/admin/reviews">Назад</a>
+
       </div>
     </div>
   </div>
 
-  <div class="grid" style="grid-template-columns: 1.2fr .8fr; gap: 14px;">
+  <div class="grid" style="grid-template-columns: 1.2fr .8fr; gap:14px;">
+
     <div class="card" style="margin:0;">
       <div class="card-content">
         <div class="kicker">Данные</div>
 
         <div class="mt">
-          <div class="muted" style="font-size:13px;">Ученик</div>
+
+          <div class="muted small-label">Ученик</div>
           <div class="row between" style="gap:12px; align-items:flex-start;">
             <div class="truncate">{{ review.student }}</div>
             <div class="mono muted">{{ review.student_email }}</div>
           </div>
 
-          <div class="divider mt"></div>
+          <div class="divider"></div>
 
-          <div class="muted" style="font-size:13px;">Задание</div>
+          <div class="muted small-label">Задание</div>
           <div class="row between" style="gap:12px; align-items:flex-start;">
-            <div class="truncate">{{ review.task_title }}</div>
-            <a class="mono" href="/admin/tasks/{{ review.task_id }}">task #{{ review.task_id }}</a>
+            <div>
+              <strong>{{ review.task_title }}</strong>
+              <div class="muted mt-xxs">
+                {{ review.task_block }} · {{ review.task_category }}
+              </div>
+            </div>
+
+            <a class="mono" href="/admin/tasks/{{ review.task_id }}">
+              task #{{ review.task_id }}
+            </a>
           </div>
 
-          <div class="divider mt"></div>
+          <div class="divider"></div>
 
-          <div class="muted" style="font-size:13px;">Статус</div>
+          <div class="muted small-label">Статус</div>
           <div class="mt-xxs">
             {% if review.status == "pending" %}
               <span class="badge badge-warn">Проверяется</span>
@@ -57,25 +71,59 @@
             {% endif %}
           </div>
 
-          <div class="divider mt"></div>
+          {% if review.essay_text %}
+            <div class="divider"></div>
 
-          <div class="muted" style="font-size:13px;">Комментарий ученика</div>
-          <div class="mt-xxs" style="white-space:pre-line; line-height:1.6;">
+            <div class="muted small-label">Эссе</div>
+            <div class="muted mt-xxs" style="font-size:13px;">
+              {{ review.essay_text|length }} знаков
+            </div>
+
+            <div class="text-box mt-xxs">
+              {{ review.essay_text }}
+            </div>
+          {% endif %}
+
+          {% if review.video_url %}
+            <div class="divider"></div>
+
+            <div class="muted small-label">Видеовизитка</div>
+
+            <a
+              class="evlink mt-xxs"
+              href="{{ review.video_url }}"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Открыть ссылку <span class="muted">→</span>
+            </a>
+          {% endif %}
+
+          <div class="divider"></div>
+
+          <div class="muted small-label">Комментарий ученика</div>
+          <div class="text-box mt-xxs">
             {{ review.comment or "Комментарий не указан." }}
           </div>
 
           {% if review.files %}
-            <div class="divider mt"></div>
+            <div class="divider"></div>
 
-            <div class="muted" style="font-size:13px;">Прикреплённые файлы</div>
+            <div class="muted small-label">Прикреплённые файлы</div>
             <div class="stack mt-xxs">
               {% for f in review.files %}
-                <a class="evlink" href="{{ f.file_path }}" target="_blank" rel="noopener noreferrer">
+                <a
+                  class="evlink"
+                  href="{{ f.file_path }}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   {{ f.original_name }} <span class="muted">→</span>
                 </a>
               {% endfor %}
             </div>
           {% endif %}
+
         </div>
       </div>
     </div>
@@ -84,10 +132,32 @@
       <div class="card-content">
         <h3 class="h3">Решение</h3>
 
+        <div class="score-box mt">
+          <div class="score-row">
+            <span class="muted">Основные баллы</span>
+            <strong>{{ review.base_points }}</strong>
+          </div>
+
+          <div class="score-row">
+            <span class="muted">Бонус за видео</span>
+            <strong>+{{ review.video_bonus_points }}</strong>
+          </div>
+
+          <div class="score-row">
+            <span class="muted">Бонус за материалы</span>
+            <strong>+{{ review.extra_files_bonus_points }}</strong>
+          </div>
+
+          <div class="score-row total">
+            <span>Итого</span>
+            <strong>{{ review.total_points }}</strong>
+          </div>
+        </div>
+
         <div class="stack mt">
           <form method="post" action="/admin/reviews/{{ review.id }}/approve">
             <button class="btn btn-primary w100" type="submit">
-              Принять и начислить
+              Принять и начислить {{ review.total_points }}
             </button>
           </form>
 
@@ -102,41 +172,92 @@
           </a>
         </div>
 
-        <div class="divider mt"></div>
-
       </div>
     </div>
+
   </div>
 
 </section>
 
 <style>
-  .divider{ height:1px; background: rgba(255,255,255,.08); margin-top: 14px; }
-  .stack{ display:grid; gap: 10px; }
-  .w100{ width:100%; justify-content:center; }
-  .mt-xxs{ margin-top: 6px; }
+  .divider{
+    height:1px;
+    background:rgba(255,255,255,.08);
+    margin:14px 0;
+  }
+
+  .stack{
+    display:grid;
+    gap:10px;
+  }
+
+  .w100{
+    width:100%;
+    justify-content:center;
+  }
+
+  .mt{
+    margin-top:16px;
+  }
+
+  .mt-xxs{
+    margin-top:6px;
+  }
+
+  .small-label{
+    font-size:13px;
+  }
+
+  .text-box{
+    padding:12px 14px;
+    border-radius:14px;
+    background:rgba(255,255,255,.035);
+    border:1px solid rgba(255,255,255,.08);
+    white-space:pre-wrap;
+    line-height:1.6;
+  }
 
   .evlink{
-    display: inline-flex;
-    gap: 8px;
-    padding: 10px 12px;
-    border-radius: 14px;
-    border: 1px solid rgba(255,255,255,.10);
-    background: rgba(255,255,255,.03);
-    text-decoration: none;
-    color: inherit;
+    display:inline-flex;
+    gap:8px;
+    padding:10px 12px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,.10);
+    background:rgba(255,255,255,.03);
+    text-decoration:none;
+    color:inherit;
+    word-break:break-word;
   }
 
-  .evlink:hover{ filter: brightness(1.05); }
-
-  .evlink:focus-visible{
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(120, 120, 255, .55);
+  .evlink:hover{
+    filter:brightness(1.05);
   }
 
-  @media (max-width: 900px){
+  .score-box{
+    display:grid;
+    gap:10px;
+    padding:14px;
+    border-radius:16px;
+    background:rgba(255,255,255,.035);
+    border:1px solid rgba(255,255,255,.08);
+  }
+
+  .score-row{
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    align-items:center;
+  }
+
+  .score-row.total{
+    padding-top:10px;
+    border-top:1px solid rgba(255,255,255,.08);
+    font-size:18px;
+  }
+
+  @media (max-width:900px){
     .grid{
-      grid-template-columns: 1fr !important;
+      grid-template-columns:1fr !important;
     }
   }
 </style>

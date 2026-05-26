@@ -3,15 +3,36 @@
 
 <section class="stack reveal" style="display:flex; flex-direction:column; gap:16px;">
 
-  <div class="row" style="justify-content:space-between; align-items:center;">
+  <div class="row" style="justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
     <div>
       <div class="kicker">Задание</div>
       <h1 class="h2" style="margin-top:6px;">{{ task.title }}</h1>
     </div>
 
-    <div class="row" style="gap:10px; align-items:center;">
+    <div class="row" style="gap:10px; align-items:center; flex-wrap:wrap;">
+      <span class="pill">{{ task.block }}</span>
       <span class="pill">{{ task.category }}</span>
       <span class="pill">{{ task.points }} баллов</span>
+
+      {% if task.assignment_type == "team" %}
+        <span class="pill pill-ok">Групповое</span>
+        <span class="pill">{{ task.required_members }} участников</span>
+      {% else %}
+        <span class="pill">Индивидуальное</span>
+      {% endif %}
+
+      {% if task.requires_essay %}
+        <span class="pill">Эссе обязательно</span>
+      {% endif %}
+
+      {% if task.allows_video_link and task.video_bonus_points > 0 %}
+        <span class="pill">Видео +{{ task.video_bonus_points }}</span>
+      {% endif %}
+
+      {% if task.allows_extra_files and task.extra_files_bonus_points > 0 %}
+        <span class="pill">Материалы +{{ task.extra_files_bonus_points }}</span>
+      {% endif %}
+
       {% if submission %}
         <span class="pill">
           {% if submission.status == "pending" %}
@@ -30,58 +51,230 @@
 
   <div class="card">
     <div class="card-content">
-      <h3 class="h3">Описание</h3>
-
-      <p class="muted mt-xs" style="line-height:1.7; white-space:pre-line;">
-        {{ task.description or "Описание пока не заполнено." }}
-      </p>
-
-      {% if submission %}
-        <div class="mt-md">
-          <div class="label" style="margin-bottom:6px;">Текущая отправка</div>
-          <div class="card" style="background: rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08);">
-            <div class="card-content">
-              <div class="muted" style="font-size:14px; margin-bottom:8px;">
-                Статус:
-                <strong>
-                  {% if submission.status == "pending" %}
-                    На проверке
-                  {% elif submission.status == "approved" %}
-                    Принято
-                  {% elif submission.status == "rejected" %}
-                    Отклонено
-                  {% else %}
-                    {{ submission.status }}
-                  {% endif %}
-                </strong>
-              </div>
-
-              <div style="white-space:pre-line; line-height:1.6;">
-                {{ submission.comment or "Комментарий не указан." }}
-              </div>
-              {% if files %}
-                <div class="mt-md">
-                  <div class="label" style="margin-bottom:8px;">Загруженные файлы</div>
-                  <div class="stack" style="display:grid; gap:8px;">
-                    {% for f in files %}
-                      <a
-                        href="{{ f.file_path }}"
-                        target="_blank"
-                        class="btn btn-ghost"
-                        style="justify-content:flex-start;"
-                      >
-                        {{ f.original_name }}
-                      </a>
-                    {% endfor %}
+      <div class="row"
+           style="justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
+        <div>
+          <h3 class="h3">Описание</h3>
+          <p class="muted mt-xs"
+             style="line-height:1.7; white-space:pre-line;">
+            {{ task.description or "Описание пока не заполнено." }}
+          </p>
+        </div>
+        {% if materials %}
+        <div style="min-width:280px; max-width:360px; width:100%;">
+          <div class="kicker">Материалы задания</div>
+          <div class="stack"
+               style="display:grid; gap:10px; margin-top:10px;">
+            {% for material in materials %}
+              <a
+                href="{{ material.file_path }}"
+                target="_blank"
+                class="material-card"
+              >
+                <div>
+                  <strong>
+                    {{ material.original_name }}
+                  </strong>
+                  <div class="muted mt-xxs"
+                       style="font-size:13px;">
+                    Шаблон / методичка
                   </div>
                 </div>
-              {% endif %}
+                <span class="pill">
+                  Скачать
+                </span>
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if task.assignment_type == "team" %}
+  <div class="card">
+    <div class="card-content">
+      <div class="row" style="justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
+        <div>
+          <div class="kicker">Командное выполнение</div>
+          <h3 class="h3">Собери команду для задания</h3>
+
+          <p class="muted mt-xs" style="line-height:1.6;">
+            Для отправки отчёта команда должна набрать {{ task.required_members }} участников.
+            После проверки баллы будут начислены всем участникам команды.
+          </p>
+        </div>
+
+        {% if current_team %}
+          {% if current_team.is_full %}
+            <span class="pill pill-ok">Команда собрана</span>
+          {% else %}
+            <span class="pill">Команда не собрана</span>
+          {% endif %}
+        {% else %}
+          <span class="pill">Вы не в команде</span>
+        {% endif %}
+      </div>
+
+      {% if not current_team_id %}
+        <form method="post"
+              action="/tasks/{{ task.id }}/teams/create"
+              class="form"
+              style="margin-top:16px;">
+          <div class="row" style="gap:12px; align-items:flex-end; flex-wrap:wrap;">
+            <label class="field" style="flex:1; min-width:260px;">
+              <span class="label">Название команды</span>
+              <input
+                class="input"
+                type="text"
+                name="team_name"
+                placeholder="Например, Герои 10Б"
+              >
+            </label>
+
+            <button class="btn btn-primary" type="submit">
+              Создать команду
+            </button>
+          </div>
+        </form>
+      {% endif %}
+
+      <div class="stack" style="display:grid; gap:12px; margin-top:16px;">
+        {% for team in teams %}
+          <div class="card" style="background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08);">
+            <div class="card-content">
+              <div class="row" style="justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
+                <div>
+                  <div class="row" style="gap:10px; align-items:center; flex-wrap:wrap;">
+                    <strong>{{ team.name }}</strong>
+
+                    {% if team.is_full %}
+                      <span class="pill pill-ok">Собрана</span>
+                    {% else %}
+                      <span class="pill">Набор участников</span>
+                    {% endif %}
+
+                    {% if current_team_id == team.id %}
+                      <span class="pill pill-ok">Ваша команда</span>
+                    {% endif %}
+                  </div>
+
+                  <div class="muted mt-xs">
+                    Участников: {{ team.members_count }} / {{ task.required_members }}
+                  </div>
+                </div>
+
+                <div>
+                  {% if current_team_id == team.id %}
+                    <span class="pill pill-ok">Вы участвуете</span>
+                  {% elif not current_team_id and not team.is_full %}
+                    <form method="post" action="/tasks/{{ task.id }}/teams/{{ team.id }}/join">
+                      <button class="btn btn-ghost" type="submit">Вступить</button>
+                    </form>
+                  {% elif team.is_full %}
+                    <span class="pill">Мест нет</span>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="divider"></div>
+
+              <div class="stack" style="display:grid; gap:10px;">
+                {% for item in team_members_map[team.id] %}
+                  <div class="row" style="justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                    <div>
+                      <strong>
+                        {{ item.profile.full_name if item.profile else item.user.email }}
+                      </strong>
+                      <div class="muted mt-xs" style="font-size:13px;">
+                        {{ item.user.email }}
+                      </div>
+                    </div>
+
+                    {% if team.created_by_user_id == item.user.id %}
+                      <span class="pill">Лидер</span>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
             </div>
+          </div>
+        {% else %}
+          <div class="muted">Пока команд нет. Создайте первую команду.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if submission %}
+  <div class="card">
+    <div class="card-content">
+      <h3 class="h3">Текущая отправка</h3>
+
+      <div class="muted" style="font-size:14px; margin-top:8px; margin-bottom:8px;">
+        Статус:
+        <strong>
+          {% if submission.status == "pending" %}
+            На проверке
+          {% elif submission.status == "approved" %}
+            Принято
+          {% elif submission.status == "rejected" %}
+            Отклонено
+          {% else %}
+            {{ submission.status }}
+          {% endif %}
+        </strong>
+      </div>
+
+      {% if submission.essay_text %}
+        <div class="submission-block">
+          <div class="label">Эссе</div>
+          <div style="white-space:pre-line; line-height:1.6;">
+            {{ submission.essay_text }}
+          </div>
+        </div>
+      {% endif %}
+
+      {% if submission.video_url %}
+        <div class="submission-block">
+          <div class="label">Видеовизитка</div>
+          <a href="{{ submission.video_url }}" target="_blank" class="btn btn-ghost" style="margin-top:8px;">
+            Открыть ссылку
+          </a>
+        </div>
+      {% endif %}
+
+      {% if submission.comment %}
+        <div class="submission-block">
+          <div class="label">Комментарий</div>
+          <div style="white-space:pre-line; line-height:1.6;">
+            {{ submission.comment }}
+          </div>
+        </div>
+      {% endif %}
+
+      {% if files %}
+        <div class="mt-md">
+          <div class="label" style="margin-bottom:8px;">Загруженные файлы</div>
+          <div class="stack" style="display:grid; gap:8px;">
+            {% for f in files %}
+              <a
+                href="{{ f.file_path }}"
+                target="_blank"
+                class="btn btn-ghost"
+                style="justify-content:flex-start;"
+              >
+                {{ f.original_name }}
+              </a>
+            {% endfor %}
           </div>
         </div>
       {% endif %}
     </div>
   </div>
+  {% endif %}
 
   <div class="card">
     <div class="card-content">
@@ -93,66 +286,169 @@
         {% endif %}
       </h3>
 
-      <p class="muted mt-xs">
-        Напиши комментарий, описание выполнения и при необходимости прикрепи фото, PDF, сертификаты, дипломы или другие подтверждающие файлы.
-      </p>
+      {% if submission and submission.status == "approved" %}
+        <p class="muted mt-xs">
+          Задание уже принято. Повторная отправка файлов недоступна.
+        </p>
 
-      <form method="post" action="/tasks/{{ task.id }}/submit" enctype="multipart/form-data" class="form" style="margin-top:16px;">
-        <label class="field">
-          <span class="label">Комментарий</span>
-          <textarea
-            class="input"
-            name="comment"
-            rows="8"
-            placeholder="Опиши, как ты выполнил задание"
-          >{% if submission %}{{ submission.comment }}{% endif %}</textarea>
-        </label>
-        <label class="field" style="margin-top:12px;">
-          <span class="label">Файлы подтверждения</span>
-          <input
-            class="input"
-            type="file"
-            name="files"
-            multiple
-            accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
-          >
-          <div class="muted" style="margin-top:6px; font-size:13px;">
-            Можно прикрепить фото, PDF, сертификаты, дипломы, документы.
+      {% elif task.assignment_type == "team" and not current_team %}
+        <p class="muted mt-xs">
+          Для отправки задания сначала создайте команду или вступите в существующую.
+        </p>
+
+      {% elif task.assignment_type == "team" and current_team and not current_team.is_full %}
+        <p class="muted mt-xs">
+          Команда ещё не собрана. Сейчас участников:
+          {{ current_team.members_count }} / {{ task.required_members }}.
+          Форма отправки появится после набора команды.
+        </p>
+
+      {% else %}
+        <p class="muted mt-xs">
+          Заполни обязательные поля и при необходимости добавь дополнительные материалы.
+        </p>
+
+        <form method="post" action="/tasks/{{ task.id }}/submit" enctype="multipart/form-data" class="form" style="margin-top:16px;">
+
+          {% if task.requires_essay %}
+            <label class="field">
+              <span class="label">
+                Эссе
+                {% if task.min_essay_len or task.max_essay_len %}
+                  ({{ task.min_essay_len }}–{{ task.max_essay_len }} знаков)
+                {% endif %}
+              </span>
+
+              <textarea
+                class="input textarea-fixed"
+                name="essay_text"
+                rows="10"
+                minlength="{{ task.min_essay_len }}"
+                {% if task.max_essay_len %}maxlength="{{ task.max_essay_len }}"{% endif %}
+                placeholder="Напиши текст эссе"
+                required
+              >{% if submission %}{{ submission.essay_text }}{% endif %}</textarea>
+
+              <div class="muted" style="margin-top:6px; font-size:13px;">
+                Это обязательная часть задания.
+              </div>
+            </label>
+          {% endif %}
+
+          {% if task.allows_video_link %}
+            <label class="field" style="margin-top:12px;">
+              <span class="label">
+                Ссылка на видеовизитку
+                {% if task.video_bonus_points > 0 %}
+                  (+{{ task.video_bonus_points }} баллов)
+                {% endif %}
+              </span>
+
+              <input
+                class="input"
+                type="url"
+                name="video_url"
+                value="{% if submission %}{{ submission.video_url }}{% endif %}"
+                placeholder="https://..."
+              >
+
+              <div class="muted" style="margin-top:6px; font-size:13px;">
+                Необязательно. Можно указать ссылку на видеофайл или облачное хранилище.
+              </div>
+            </label>
+          {% endif %}
+
+          <label class="field" style="margin-top:12px;">
+            <span class="label">Комментарий</span>
+            <textarea
+              class="input textarea-fixed"
+              name="comment"
+              rows="5"
+              placeholder="Дополнительный комментарий к выполнению"
+            >{% if submission %}{{ submission.comment }}{% endif %}</textarea>
+          </label>
+
+          {% if task.allows_extra_files %}
+            <label class="field" style="margin-top:12px;">
+              <span class="label">
+                Дополнительные материалы
+                {% if task.extra_files_bonus_points > 0 %}
+                  (+{{ task.extra_files_bonus_points }} баллов)
+                {% endif %}
+              </span>
+
+              <input
+                class="input"
+                type="file"
+                name="files"
+                multiple
+                accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.mp4"
+              >
+
+              <div class="muted" style="margin-top:6px; font-size:13px;">
+                Можно прикрепить фото, PDF, документы, презентации или видеофайл.
+              </div>
+            </label>
+          {% endif %}
+
+          <div class="row" style="gap:10px; margin-top:12px;">
+            <button class="btn btn-primary" type="submit">
+              {% if submission %}
+                Обновить и отправить снова
+              {% else %}
+                Отправить на проверку
+              {% endif %}
+            </button>
+
+            <a class="btn btn-ghost" href="/tasks">Назад к списку</a>
           </div>
-        </label>
-        {% if files %}
-          <div class="mt-md">
-            <div class="label" style="margin-bottom:8px;">Прикреплённые файлы</div>
-            <div class="stack" style="display:grid; gap:8px;">
-              {% for f in files %}
-                <a
-                  href="{{ f.file_path }}"
-                  target="_blank"
-                  class="btn btn-ghost"
-                  style="justify-content:flex-start;"
-                >
-                  {{ f.original_name }}
-                </a>
-              {% endfor %}
-            </div>
-          </div>
-        {% endif %}
-
-        <div class="row" style="gap:10px; margin-top:12px;">
-          <button class="btn btn-primary" type="submit">
-            {% if submission %}
-              Обновить и отправить снова
-            {% else %}
-              Отправить на проверку
-            {% endif %}
-          </button>
-
-          <a class="btn btn-ghost" href="/tasks">Назад к списку</a>
-        </div>
-      </form>
+        </form>
+      {% endif %}
     </div>
   </div>
 
 </section>
+
+<style>
+  .divider{
+    height:1px;
+    background:rgba(255,255,255,.08);
+    margin:14px 0;
+  }
+
+  .submission-block{
+    margin-top:16px;
+    padding:14px;
+    border-radius:16px;
+    background:rgba(255,255,255,.03);
+    border:1px solid rgba(255,255,255,.08);
+  }
+
+  .textarea-fixed {
+    width: 100%;
+    max-width: 100%;
+    min-width: 100%;
+    resize: vertical;
+  }
+
+    .material-card{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:14px;
+    padding:14px 16px;
+    border-radius:16px;
+    background:rgba(255,255,255,.03);
+    border:1px solid rgba(255,255,255,.08);
+    text-decoration:none;
+    color:inherit;
+    transition:.18s ease;
+
+  }
+
+  .material-card:hover{
+    transform:translateY(-2px);
+    background:rgba(255,255,255,.05);
+</style>
 
 {% endblock %}

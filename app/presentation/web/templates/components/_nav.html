@@ -11,6 +11,9 @@
       {% if user and user.role == "student" %}
         <a class="nav-link {% if active_nav == 'dashboard' %}active{% endif %}" href="/">Дашборд</a>
         <a class="nav-link {% if active_nav == 'tasks' %}active{% endif %}" href="/tasks">Задания</a>
+      <a class="nav-link {% if active_nav == 'student_rating' %}active{% endif %}" href="/rating">
+        Рейтинг
+      </a>
       {% elif user and user.role == "admin" %}
         <a class="nav-link {% if active_nav == 'admin_dashboard' %}active{% endif %}" href="/admin">Панель</a>
         <a class="nav-link {% if active_nav == 'admin_tasks' %}active{% endif %}" href="/admin/tasks">Задания</a>

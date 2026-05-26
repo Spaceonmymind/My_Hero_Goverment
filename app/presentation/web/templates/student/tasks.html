@@ -1,106 +1,187 @@
-
 {% extends "layout.html" %}
 {% block content %}
 
-<section class="toolbar reveal">
-  <div class="search">
-    <input class="input" id="taskSearch" placeholder="Поиск по заданиям..." autocomplete="off" />
+<section class="tasks-page reveal">
+
+  <div class="tasks-hero">
+    <div>
+      <div class="kicker">Задания</div>
+      <h1 class="h2">Доступные задания</h1>
+      <p class="muted mt-xs">
+        Выполняй задания по блокам, прикладывай материалы и отслеживай статус проверки.
+      </p>
+    </div>
+
+    {% if not intro_done %}
+      <span class="pill">Стартовый этап не завершён</span>
+    {% else %}
+      <span class="pill pill-ok">Все блоки открыты</span>
+    {% endif %}
   </div>
 
-  <div class="filters" id="taskFilters">
-    <button class="chip active" type="button" data-filter="all">Все</button>
-    <button class="chip" type="button" data-filter="События">События</button>
-    <button class="chip" type="button" data-filter="Образование">Образование</button>
-    <button class="chip" type="button" data-filter="Соц. активность">Соц. активность</button>
-  </div>
-</section>
+  <div class="toolbar tasks-toolbar">
+    <div class="search">
+      <input class="input" id="taskSearch" placeholder="Поиск по заданиям..." autocomplete="off" />
+    </div>
 
-<section class="cards reveal" id="taskGrid">
-  {% for t in tasks %}
-    {# ---- вычисляем удобные флаги для UI ---- #}
-    {% set has_sub = t.submission is not none %}
-    {% set st = t.submission.status if has_sub else none %}
-
-    <article
-      class="card card-task hoverlift"
-      data-title="{{ t.title|lower }}"
-      data-category="{{ t.category }}"
-      data-status="{{ st if st else '' }}"
-    >
-      <a class="card-link" href="/tasks/{{ t.id }}" aria-label="Открыть задание {{ t.title }}"></a>
-
-
-      <div class="card-content">
-        <div class="row between">
-          <div class="kicker">{{ t.category }}</div>
-
-          <div class="row gap-sm">
-            {% if t.badge %}
-              <span class="badge">{{ t.badge }}</span>
-            {% endif %}
-
-            {# Статус-пилюля #}
-            {% if has_sub %}
-              {% if st == "pending" %}
-                <span class="badge badge-warn">Проверяется</span>
-              {% elif st == "approved" %}
-                <span class="badge badge-ok">Зачтено</span>
-              {% elif st == "rejected" %}
-                <span class="badge badge-bad">Отклонено</span>
-              {% else %}
-                <span class="badge">Отправлено</span>
-              {% endif %}
-            {% endif %}
-          </div>
-        </div>
-
-        <h3 class="h3 mt-sm">{{ t.title }}</h3>
-
-        {% if t.description %}
-          <p class="muted mt-xs clamp-2">{{ t.description }}</p>
-        {% endif %}
-
-        <div class="row between mt">
-          <div class="pill pill-neutral mono">+{{ t.points }} баллов</div>
-
-          {% if not has_sub %}
-            <a href="/tasks/{{ t.id }}" class="btn btn-primary">
-              Выполнить
-            </a>
-          {% else %}
-            {% if st == "pending" %}
-              <a href="/tasks/{{ t.id }}" class="btn btn-secondary">
-                На проверке
-              </a>
-            {% elif st == "approved" %}
-              <a href="/tasks/{{ t.id }}" class="btn btn-secondary">
-                Посмотреть
-              </a>
-            {% elif st == "rejected" %}
-              <a href="/tasks/{{ t.id }}" class="btn btn-primary">
-                Исправить
-              </a>
-            {% else %}
-              <a href="/tasks/{{ t.id }}" class="btn btn-secondary">
-                Открыть
-              </a>
-            {% endif %}
-          {% endif %}
-        </div>
-      </div>
-    </article>
-  {% endfor %}
-</section>
-
-{# Empty-state #}
-<section class="reveal" id="taskEmpty" style="display:none;">
-  <div class="glass-card" style="max-width:720px;">
-    <h3 class="h3">Ничего не найдено</h3>
-    <p class="muted mt-xs">Попробуй изменить фильтр или строку поиска.</p>
-    <div class="row mt">
-      <button class="btn btn-secondary" type="button" id="resetTasksBtn">Сбросить</button>
+    <div class="filters" id="taskFilters">
+      <button class="chip active" type="button" data-filter="all">Все</button>
+      {% for block_name, block_tasks in blocks.items() %}
+        <button class="chip" type="button" data-filter="{{ block_name }}">{{ block_name }}</button>
+      {% endfor %}
     </div>
   </div>
+
+  {% if not intro_done %}
+    <div class="intro-warning">
+      <div>
+        <div class="kicker">Стартовый этап</div>
+        <h2 class="h3">Сначала выполни задание «Представь себя»</h2>
+        <p class="muted mt-xs">
+          Остальные задания откроются после того, как наставник примет стартовое задание.
+        </p>
+      </div>
+    </div>
+  {% endif %}
+
+  <section class="task-blocks" id="taskGrid">
+    {% for block_name, block_tasks in blocks.items() %}
+
+      <div class="task-block" data-block="{{ block_name }}">
+
+        <div class="block-head">
+          <div>
+            <div class="kicker">Блок</div>
+            <h2 class="h2">{{ block_name }}</h2>
+          </div>
+
+          <span class="pill">{{ block_tasks|length }} заданий</span>
+        </div>
+
+        <div class="task-list">
+          {% for t in block_tasks %}
+            {% set has_sub = t.submission is not none %}
+            {% set st = t.submission.status if has_sub else none %}
+
+            <article
+              class="task-card {% if t.is_locked %}task-locked{% endif %}"
+              data-title="{{ t.title|lower }}"
+              data-category="{{ block_name }}"
+              data-status="{{ st if st else '' }}"
+            >
+
+              {% if not t.is_locked %}
+                <a class="card-link" href="/tasks/{{ t.id }}" aria-label="Открыть задание {{ t.title }}"></a>
+              {% endif %}
+
+              <div class="task-main">
+                <div class="task-top">
+                  <div class="task-kickers">
+                    <span class="mini-label">{{ t.category }}</span>
+
+                    {% if t.is_intro %}
+                      <span class="badge badge-ok">Стартовое</span>
+                    {% endif %}
+
+                    {% if t.is_locked %}
+                      <span class="badge">Закрыто</span>
+                    {% endif %}
+
+                    {% if t.assignment_type == "team" %}
+                      <span class="badge">Командное · {{ t.required_members }}</span>
+                    {% endif %}
+
+                    {% if has_sub %}
+                      {% if st == "pending" %}
+                        <span class="badge badge-warn">Проверяется</span>
+                      {% elif st == "approved" %}
+                        <span class="badge badge-ok">Зачтено</span>
+                      {% elif st == "rejected" %}
+                        <span class="badge badge-bad">Отклонено</span>
+                      {% else %}
+                        <span class="badge">Отправлено</span>
+                      {% endif %}
+                    {% endif %}
+                  </div>
+                </div>
+
+                <h3 class="h3 task-title">{{ t.title }}</h3>
+
+                {% if t.description %}
+                  <p class="muted task-desc">{{ t.description }}</p>
+                {% endif %}
+
+                <div class="task-conditions">
+                  {% if t.requires_essay %}
+                    <span>Эссе {{ t.min_essay_len }}–{{ t.max_essay_len }}</span>
+                  {% endif %}
+
+                  {% if t.allows_video_link and t.video_bonus_points > 0 %}
+                    <span>Видео +{{ t.video_bonus_points }}</span>
+                  {% endif %}
+
+                  {% if t.allows_extra_files and t.extra_files_bonus_points > 0 %}
+                    <span>Материалы +{{ t.extra_files_bonus_points }}</span>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="task-side">
+                <div class="task-points">
+                  <span>Баллы</span>
+                  <strong>+{{ t.points }}</strong>
+                </div>
+
+                {% if t.is_locked %}
+                  <button class="btn btn-secondary" type="button" disabled>
+                    Закрыто
+                  </button>
+                {% elif not has_sub %}
+                  <a href="/tasks/{{ t.id }}" class="btn btn-primary">
+                    Выполнить
+                  </a>
+                {% else %}
+                  {% if st == "pending" %}
+                    <a href="/tasks/{{ t.id }}" class="btn btn-secondary">
+                      На проверке
+                    </a>
+                  {% elif st == "approved" %}
+                    <a href="/tasks/{{ t.id }}" class="btn btn-secondary">
+                      Посмотреть
+                    </a>
+                  {% elif st == "rejected" %}
+                    <a href="/tasks/{{ t.id }}" class="btn btn-primary">
+                      Исправить
+                    </a>
+                  {% else %}
+                    <a href="/tasks/{{ t.id }}" class="btn btn-secondary">
+                      Открыть
+                    </a>
+                  {% endif %}
+                {% endif %}
+              </div>
+
+            </article>
+          {% endfor %}
+        </div>
+      </div>
+
+    {% endfor %}
+  </section>
+
+  <section id="taskEmpty" style="display:none;">
+    <div class="intro-warning">
+      <div>
+        <h3 class="h3">Ничего не найдено</h3>
+        <p class="muted mt-xs">Попробуй изменить фильтр или строку поиска.</p>
+      </div>
+
+      <button class="btn btn-secondary" type="button" id="resetTasksBtn">
+        Сбросить
+      </button>
+    </div>
+  </section>
+
 </section>
 
 <script>
@@ -113,8 +194,7 @@
 
   if (!grid) return;
 
-  const cards = Array.from(grid.querySelectorAll(".card-task"));
-
+  const blocks = Array.from(grid.querySelectorAll(".task-block"));
   let activeFilter = "all";
 
   function normalize(v) {
@@ -123,23 +203,34 @@
 
   function apply() {
     const q = normalize(search?.value);
-    let visible = 0;
+    let visibleCards = 0;
 
-    cards.forEach((c) => {
-      const title = normalize(c.dataset.title);
-      const cat = (c.dataset.category || "").toString();
-      const passFilter = (activeFilter === "all") || (cat === activeFilter);
-      const passSearch = (!q) || title.includes(q);
+    blocks.forEach((block) => {
+      const blockName = block.dataset.block || "";
+      const blockPass = activeFilter === "all" || blockName === activeFilter;
+      let visibleInBlock = 0;
 
-      const show = passFilter && passSearch;
-      c.style.display = show ? "" : "none";
-      if (show) visible += 1;
+      const blockCards = Array.from(block.querySelectorAll(".task-card"));
+
+      blockCards.forEach((card) => {
+        const title = normalize(card.dataset.title);
+        const passSearch = !q || title.includes(q);
+        const show = blockPass && passSearch;
+
+        card.style.display = show ? "" : "none";
+
+        if (show) {
+          visibleCards += 1;
+          visibleInBlock += 1;
+        }
+      });
+
+      block.style.display = visibleInBlock > 0 ? "" : "none";
     });
 
-    if (empty) empty.style.display = (visible === 0) ? "" : "none";
+    if (empty) empty.style.display = visibleCards === 0 ? "" : "none";
   }
 
-  // Filters
   if (filters) {
     filters.addEventListener("click", (e) => {
       const btn = e.target.closest(".chip");
@@ -154,7 +245,6 @@
     });
   }
 
-  // Search
   if (search) {
     search.addEventListener("input", apply);
     search.addEventListener("keydown", (e) => {
@@ -165,23 +255,207 @@
     });
   }
 
-  // Reset
   if (resetBtn) {
     resetBtn.addEventListener("click", () => {
       if (search) search.value = "";
       activeFilter = "all";
+
       if (filters) {
         filters.querySelectorAll(".chip").forEach((b) => b.classList.remove("active"));
         const all = filters.querySelector('.chip[data-filter="all"]');
         if (all) all.classList.add("active");
       }
+
       apply();
     });
   }
 
-  // First render
   apply();
 })();
 </script>
+
+<style>
+  .tasks-page {
+    display: grid;
+    gap: 18px;
+  }
+
+  .tasks-hero,
+  .intro-warning {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+    flex-wrap: wrap;
+
+    padding: 22px;
+    border-radius: 24px;
+    border: 1px solid rgba(255,255,255,.08);
+    background:
+      linear-gradient(135deg, rgba(124,92,255,.10), rgba(52,211,153,.06)),
+      rgba(255,255,255,.025);
+  }
+
+  .tasks-toolbar {
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .task-blocks {
+    display: grid;
+    gap: 28px;
+  }
+
+  .task-block {
+    display: grid;
+    gap: 14px;
+  }
+
+  .block-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    padding: 0 2px;
+  }
+
+.task-list {
+  display: grid;
+  gap: 14px;
+}
+
+.task-card {
+  position: relative;
+
+  width: 100%;
+  min-width: 0;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 24px;
+
+  padding: 22px;
+
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,.08);
+
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.05), rgba(255,255,255,.015)),
+    rgba(255,255,255,.02);
+
+  overflow: hidden;
+  transition: .18s ease;
+}
+
+.task-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255,255,255,.14);
+}
+
+.task-main {
+  flex: 1;
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.task-side {
+  width: 180px;
+  min-width: 180px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+
+  gap: 18px;
+}
+
+.task-title {
+  margin-top: 12px;
+}
+
+.task-desc {
+  margin-top: 8px;
+  line-height: 1.6;
+
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+
+  overflow: hidden;
+}
+
+.task-conditions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  margin-top: 16px;
+}
+
+.task-conditions span {
+  padding: 6px 10px;
+  border-radius: 999px;
+
+  background: rgba(255,255,255,.035);
+  border: 1px solid rgba(255,255,255,.08);
+
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.task-points {
+  text-align: right;
+}
+
+.task-points span {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.task-points strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 36px;
+  line-height: 1;
+}
+
+.task-locked {
+  opacity: .6;
+}
+
+@media (max-width: 900px) {
+
+  .task-card {
+    flex-direction: column;
+  }
+
+  .task-side {
+    width: 100%;
+    min-width: 0;
+
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .task-points {
+    text-align: left;
+  }
+}
+</style>
 
 {% endblock %}

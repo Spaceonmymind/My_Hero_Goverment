@@ -1,155 +1,321 @@
-<!-- app/presentation/web/templates/admin/task_detail.html -->
 {% extends "layout.html" %}
 {% block content %}
 
-<section class="grid reveal">
+<section class="reveal stack" style="display:flex; flex-direction:column; gap:16px;">
+
   <div class="card">
     <div class="card-content">
-      <div class="row between">
+
+      <div class="row between" style="align-items:flex-start; gap:16px; flex-wrap:wrap;">
+
         <div>
           <div class="kicker">Задание</div>
+
           <h2 class="h2">{{ task.title }}</h2>
+
           <div class="muted mt-xxs">
-            ID: <span class="mono">{{ task.id }}</span>
-            · Категория: <span class="mono">{{ task.category }}</span>
+            Категория:
+            <span class="mono">{{ task.category }}</span>
+            ·
+            Баллы:
+            <span class="mono">{{ task.points }}</span>
           </div>
         </div>
 
-        <div class="row gap-sm">
-          <a class="btn btn-ghost" href="/admin/tasks">Назад</a>
-          <button class="btn btn-primary" type="button"
-                  data-cmd="toast" data-title="MVP"
-                  data-body="Сохранение подключим после SQLite + модели + Alembic.">
-            Сохранить
-          </button>
-        </div>
+        <a class="btn btn-ghost" href="/tasks">
+          Назад
+        </a>
+
       </div>
 
-      <div class="grid mt" style="grid-template-columns: 1.3fr .7fr; gap: 14px;">
-        <!-- Левая: настройки -->
-        <div class="card" style="margin:0;">
+      {% if task.description %}
+        <div class="card mt">
           <div class="card-content">
-            <div class="kicker">Параметры</div>
+            <div class="kicker">Описание</div>
 
-            <div class="form mt">
-              <div class="field">
-                <label class="label">Название</label>
-                <input class="input" type="text" value="{{ task.title }}" placeholder="Название задания" />
-              </div>
-
-              <div class="field">
-                <label class="label">Категория</label>
-                <input class="input" type="text" value="{{ task.category }}" placeholder="Например: Образование" />
-              </div>
-
-              <div class="row gap-sm">
-                <div class="field" style="flex:1;">
-                  <label class="label">Баллы</label>
-                  <input class="input mono" type="number" value="{{ task.points }}" min="0" step="1" />
-                </div>
-
-                <div class="field" style="min-width: 220px;">
-                  <label class="label">Статус</label>
-                  <div class="row between pillbox">
-                    <div class="muted">Активность</div>
-                    <span class="pill {% if task.active %}pill-ok{% else %}pill-neutral{% endif %}">
-                      {% if task.active %}Активно{% else %}Скрыто{% endif %}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="muted mt" style="font-size: 13px;">
-                Сейчас поля только для вида. На следующем шаге подключим сохранение и валидации.
-              </div>
+            <div style="white-space:pre-wrap;">
+              {{ task.description }}
             </div>
           </div>
         </div>
+      {% endif %}
 
-        <!-- Правая: быстрые действия -->
+    </div>
+  </div>
+
+  {% if task.assignment_type == "team" %}
+
+  <div class="card">
+    <div class="card-content">
+
+      <div class="row between" style="align-items:flex-start; gap:16px; flex-wrap:wrap;">
+
+        <div>
+          <div class="kicker">Командное задание</div>
+
+          <h3 class="h3">
+            Требуется участников:
+            {{ task.required_members }}
+          </h3>
+
+          <div class="muted mt-xxs">
+            Для отправки задания необходимо собрать команду.
+          </div>
+        </div>
+
+        {% if not current_team_id %}
+
+        <form method="post"
+              action="/tasks/{{ task.id }}/teams/create"
+              style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+
+          <label class="field" style="min-width:260px;">
+            <span class="label">Название команды</span>
+
+            <input
+              class="input"
+              type="text"
+              name="team_name"
+              placeholder="Например, Герои 10Б"
+            >
+          </label>
+
+          <button class="btn btn-primary" type="submit">
+            Создать команду
+          </button>
+
+        </form>
+
+        {% endif %}
+
+      </div>
+
+      <div class="stack mt">
+
+        {% for team in teams %}
+
         <div class="card" style="margin:0;">
           <div class="card-content">
-            <div class="kicker">Действия</div>
-            <h3 class="h3">Быстро</h3>
 
-            <div class="stack mt">
-              <button class="btn btn-ghost w100" type="button"
-                      data-cmd="toast" data-title="MVP"
-                      data-body="Позже: переключение активности (active/hidden) с записью в БД.">
-                {% if task.active %}Скрыть{% else %}Активировать{% endif %}
-              </button>
+            <div class="row between" style="align-items:flex-start; gap:16px; flex-wrap:wrap;">
 
-              <button class="btn btn-ghost w100" type="button"
-                      data-cmd="toast" data-title="MVP"
-                      data-body="Позже: дублирование задания и редактирование копии.">
-                Дублировать
-              </button>
+              <div>
 
-              <button class="btn btn-ghost w100" type="button"
-                      data-cmd="toast" data-title="Без удаления"
-                      data-body="Удаление не делаем: используем флаг активности.">
-                Почему нельзя удалить?
-              </button>
+                <div class="row gap-sm" style="align-items:center; flex-wrap:wrap;">
+                  <strong>{{ team.name }}</strong>
+
+                  {% if team.status == "ready" %}
+                    <span class="pill pill-ok">Команда собрана</span>
+                  {% else %}
+                    <span class="pill">Набор участников</span>
+                  {% endif %}
+                </div>
+
+                <div class="muted mt-xxs">
+                  Участников:
+                  {{ team.members_count }}
+                  / {{ task.required_members }}
+                </div>
+
+              </div>
+
+              <div>
+
+                {% if current_team_id == team.id %}
+
+                  <span class="pill pill-ok">
+                    Вы в команде
+                  </span>
+
+                {% elif not current_team_id and not team.is_full %}
+
+                  <form method="post"
+                        action="/tasks/{{ task.id }}/teams/{{ team.id }}/join">
+
+                    <button class="btn btn-ghost" type="submit">
+                      Вступить
+                    </button>
+
+                  </form>
+
+                {% elif team.is_full %}
+
+                  <span class="pill">
+                    Команда заполнена
+                  </span>
+
+                {% endif %}
+
+              </div>
+
             </div>
 
             <div class="divider mt"></div>
 
-            <div class="kicker">Подсказка</div>
-            <div class="muted mt-xxs">
-              Начисление баллов студенту всегда идёт через леджер транзакций — это исключает “перетирание” баланса.
+            <div class="stack mt">
+
+              {% for item in team_members_map[team.id] %}
+
+              <div class="row between"
+                   style="gap:16px; flex-wrap:wrap;">
+
+                <div>
+
+                  <strong>
+                    {{ item.profile.full_name if item.profile else item.user.email }}
+                  </strong>
+
+                  <div class="muted mt-xxs">
+                    {{ item.user.email }}
+                  </div>
+
+                </div>
+
+                {% if team.created_by_user_id == item.user.id %}
+                  <span class="pill">Лидер</span>
+                {% endif %}
+
+              </div>
+
+              {% endfor %}
+
             </div>
+
           </div>
         </div>
+
+        {% else %}
+
+        <div class="muted">
+          Пока команд нет.
+        </div>
+
+        {% endfor %}
+
       </div>
 
     </div>
   </div>
 
+  {% endif %}
+
   <div class="card">
     <div class="card-content">
-      <div class="kicker">Проверки</div>
-      <h3 class="h3">Что будем валидировать</h3>
-      <ul class="list">
-        <li>Название: обязательно, 3–80 символов.</li>
-        <li>Баллы: 0–500 (порог потом уточним).</li>
-        <li>Категория: из справочника или свободный ввод (решим позже).</li>
-      </ul>
+
+      <div class="kicker">Отправка задания</div>
+
+      {% if task.assignment_type == "team" and not current_team_id %}
+
+        <div class="muted">
+          Сначала необходимо создать команду или вступить в существующую.
+        </div>
+
+      {% elif task.assignment_type == "team" %}
+
+        <div class="pill pill-ok" style="margin-bottom:16px; width:max-content;">
+          Вы состоите в команде
+        </div>
+
+      {% endif %}
+
+      {% if submission %}
+
+        <div class="row between" style="gap:16px; flex-wrap:wrap;">
+
+          <div>
+            <div class="muted">Статус проверки</div>
+
+            {% if submission.status == "pending" %}
+              <span class="pill">На проверке</span>
+            {% elif submission.status == "approved" %}
+              <span class="pill pill-ok">Принято</span>
+            {% elif submission.status == "rejected" %}
+              <span class="pill pill-bad">Отклонено</span>
+            {% endif %}
+          </div>
+
+        </div>
+
+        {% if submission.comment %}
+          <div class="card mt">
+            <div class="card-content">
+              <div class="kicker">Комментарий</div>
+
+              <div style="white-space:pre-wrap;">
+                {{ submission.comment }}
+              </div>
+            </div>
+          </div>
+        {% endif %}
+
+        {% if files %}
+          <div class="stack mt">
+
+            {% for f in files %}
+
+            <a class="card"
+               href="/uploads/{{ f.stored_name }}"
+               target="_blank"
+               style="text-decoration:none;">
+
+              <div class="card-content row between">
+
+                <div>
+                  <strong>{{ f.original_name }}</strong>
+
+                  <div class="muted mt-xxs">
+                    {{ (f.file_size / 1024)|round(1) }} KB
+                  </div>
+                </div>
+
+                <span class="pill">Открыть</span>
+
+              </div>
+
+            </a>
+
+            {% endfor %}
+
+          </div>
+        {% endif %}
+
+      {% else %}
+
+        <div class="muted">
+          Задание пока не отправлено.
+        </div>
+
+      {% endif %}
+
     </div>
   </div>
+
 </section>
 
 <style>
-  /* Если у тебя нет form-стилей — добавим мягко и локально */
-  .form { display: grid; gap: 12px; }
-  .field { display: grid; gap: 8px; }
-  .label { font-size: 13px; opacity: .75; }
-  .input {
-    width: 100%;
-    padding: 12px 14px;
-    border-radius: 14px;
-    border: 1px solid rgba(255,255,255,.10);
-    background: rgba(255,255,255,.04);
-    color: inherit;
-    outline: none;
+
+  .stack{
+    display:grid;
+    gap:12px;
   }
-  .input:focus-visible{
-    box-shadow: 0 0 0 2px rgba(120, 120, 255, .45);
-    border-color: rgba(120, 120, 255, .35);
+
+  .gap-sm{
+    gap:10px;
   }
-  .pillbox{
-    padding: 12px 14px;
-    border-radius: 14px;
-    border: 1px solid rgba(255,255,255,.10);
-    background: rgba(255,255,255,.02);
+
+  .mt{
+    margin-top:16px;
   }
-  .stack{ display:grid; gap:10px; }
-  .w100{ width:100%; justify-content:center; }
+
+  .mt-xxs{
+    margin-top:6px;
+  }
+
   .divider{
-    height: 1px;
-    background: rgba(255,255,255,.08);
+    height:1px;
+    background:rgba(255,255,255,.08);
   }
-  .gap-sm{ gap: 10px; }
-  .mt-xxs{ margin-top: 6px; }
+
 </style>
 
 {% endblock %}
