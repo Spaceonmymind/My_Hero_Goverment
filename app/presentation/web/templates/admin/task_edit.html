@@ -1,0 +1,324 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<section class="reveal stack" style="display:flex; flex-direction:column; gap:16px;">
+
+  <div class="card">
+    <div class="card-content">
+
+      <div class="row between" style="gap:16px; align-items:flex-start; flex-wrap:wrap;">
+        <div>
+          <div class="kicker">Редактирование задания</div>
+          <h2 class="h2">{{ task.title }}</h2>
+          <p class="muted mt-xs">
+            Можно изменить параметры задания, требования к сдаче, командность и материалы.
+          </p>
+        </div>
+
+        <a class="btn btn-ghost" href="/admin/tasks">
+          Назад к заданиям
+        </a>
+      </div>
+
+      {% if error %}
+        <div class="toast toast-error" style="margin-top:14px;">{{ error }}</div>
+      {% endif %}
+
+      {% if success %}
+        <div class="toast toast-success" style="margin-top:14px;">{{ success }}</div>
+      {% endif %}
+
+      <form
+        class="form"
+        method="post"
+        action="/admin/tasks/{{ task.id }}/edit"
+        enctype="multipart/form-data"
+        style="margin-top:16px;"
+      >
+
+        <div class="row form-row">
+          <label class="field" style="flex:2; min-width:260px;">
+            <span class="label">Название</span>
+            <input class="input" name="title" value="{{ task.title }}" />
+          </label>
+
+          <label class="field" style="flex:1; min-width:220px;">
+            <span class="label">Блок</span>
+            <input class="input" name="block" value="{{ task.block }}" />
+          </label>
+
+          <label class="field" style="width:150px;">
+            <span class="label">Порядок</span>
+            <input class="input" type="number" min="0" name="sort_order" value="{{ task.sort_order }}" />
+          </label>
+
+          <label class="field" style="width:160px;">
+            <span class="label">Баллы</span>
+            <input class="input" type="number" min="0" name="points" value="{{ task.points }}" />
+          </label>
+        </div>
+
+        <div class="row form-row">
+          <label class="field" style="flex:1; min-width:220px;">
+            <span class="label">Категория</span>
+            <input class="input" name="category" value="{{ task.category }}" />
+          </label>
+
+          <label class="field" style="width:220px;">
+            <span class="label">Тип выполнения</span>
+
+            <select class="input" name="assignment_type" id="assignmentType">
+              <option value="individual" {% if task.assignment_type == "individual" %}selected{% endif %}>
+                Индивидуальное
+              </option>
+              <option value="team" {% if task.assignment_type == "team" %}selected{% endif %}>
+                Групповое
+              </option>
+            </select>
+          </label>
+
+          <label class="field" style="width:170px;" id="membersField">
+            <span class="label">Участников</span>
+            <input class="input" type="number" min="2" name="required_members" value="{{ task.required_members or 2 }}" />
+          </label>
+        </div>
+
+        <label class="field" style="margin-top:12px;">
+          <span class="label">Описание</span>
+          <textarea class="input textarea-fixed" name="description" rows="7">{{ task.description }}</textarea>
+        </label>
+
+        <div class="card inner-card">
+          <div class="card-content">
+            <div class="kicker">Доступ и логика</div>
+
+            <div class="row form-row">
+              <label class="check-line">
+                <input type="checkbox" name="is_active" {% if task.is_active %}checked{% endif %} />
+                <span>Активно</span>
+              </label>
+
+              <label class="check-line">
+                <input type="checkbox" name="is_intro" {% if task.is_intro %}checked{% endif %} />
+                <span>Стартовое задание «Представь себя»</span>
+              </label>
+
+              <label class="check-line">
+                <input type="checkbox" name="is_locked_by_intro" {% if task.is_locked_by_intro %}checked{% endif %} />
+                <span>Закрыто до выполнения стартового задания</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="card inner-card">
+          <div class="card-content">
+            <div class="kicker">Требования к сдаче</div>
+
+            <div class="row form-row">
+              <label class="check-line">
+                <input type="checkbox" name="requires_essay" {% if task.requires_essay %}checked{% endif %} />
+                <span>Требуется эссе</span>
+              </label>
+
+              <label class="field small-field">
+                <span class="label">Мин. знаков</span>
+                <input class="input" type="number" min="0" name="min_essay_len" value="{{ task.min_essay_len }}" />
+              </label>
+
+              <label class="field small-field">
+                <span class="label">Макс. знаков</span>
+                <input class="input" type="number" min="0" name="max_essay_len" value="{{ task.max_essay_len }}" />
+              </label>
+            </div>
+
+            <div class="row form-row">
+              <label class="check-line">
+                <input type="checkbox" name="allows_video_link" {% if task.allows_video_link %}checked{% endif %} />
+                <span>Разрешить ссылку на видеовизитку</span>
+              </label>
+
+              <label class="field small-field">
+                <span class="label">Бонус за видео</span>
+                <input class="input" type="number" min="0" name="video_bonus_points" value="{{ task.video_bonus_points }}" />
+              </label>
+            </div>
+
+            <div class="row form-row">
+              <label class="check-line">
+                <input type="checkbox" name="allows_extra_files" {% if task.allows_extra_files %}checked{% endif %} />
+                <span>Разрешить доп. материалы</span>
+              </label>
+
+              <label class="field small-field">
+                <span class="label">Бонус за материалы</span>
+                <input class="input" type="number" min="0" name="extra_files_bonus_points" value="{{ task.extra_files_bonus_points }}" />
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="card inner-card">
+          <div class="card-content">
+            <div class="kicker">Шаблоны и материалы</div>
+
+            {% if materials %}
+              <div class="materials-list">
+                {% for m in materials %}
+                  <a class="material-card" href="{{ m.file_path }}" target="_blank">
+                    <div>
+                      <strong>{{ m.original_name }}</strong>
+                      <div class="muted mt-xxs" style="font-size:13px;">
+                        {{ (m.file_size / 1024)|round(1) }} KB
+                      </div>
+                    </div>
+
+                    <span class="pill">Открыть</span>
+                  </a>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="muted mt-xs">
+                Шаблоны к этому заданию пока не добавлены.
+              </p>
+            {% endif %}
+
+            <div class="divider"></div>
+
+            <div class="row form-row">
+              <label class="field" style="flex:1; min-width:260px;">
+                <span class="label">Название нового материала</span>
+                <input
+                  class="input"
+                  name="material_title"
+                  placeholder="Например, шаблон эссе"
+                />
+              </label>
+
+              <label class="field" style="flex:2; min-width:320px;">
+                <span class="label">Добавить файлы</span>
+                <input
+                  class="input"
+                  type="file"
+                  name="materials"
+                  multiple
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png"
+                />
+              </label>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="row" style="gap:12px; margin-top:12px; flex-wrap:wrap;">
+          <button class="btn btn-primary" type="submit">
+            Сохранить изменения
+          </button>
+
+          <a class="btn btn-ghost" href="/admin/tasks">
+            Отмена
+          </a>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+</section>
+
+<script>
+  function toggleMembersField() {
+    const type = document.getElementById("assignmentType")?.value;
+    const field = document.getElementById("membersField");
+    const input = field?.querySelector("input");
+
+    if (!field || !input) return;
+
+    if (type === "team") {
+      field.style.display = "";
+      input.disabled = false;
+
+      if (!input.value || Number(input.value) < 2) {
+        input.value = 2;
+      }
+    } else {
+      field.style.display = "none";
+      input.disabled = true;
+      input.value = 1;
+    }
+  }
+
+  document.getElementById("assignmentType")?.addEventListener("change", toggleMembersField);
+  toggleMembersField();
+</script>
+
+<style>
+  .form-row {
+    gap: 12px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  .textarea-fixed {
+    width: 100%;
+    max-width: 100%;
+    min-width: 100%;
+    resize: vertical;
+  }
+
+  .inner-card {
+    margin-top: 14px;
+    background: rgba(255,255,255,.025);
+    border: 1px solid rgba(255,255,255,.08);
+  }
+
+  .check-line {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .small-field {
+    width: 170px;
+  }
+
+  .divider {
+    height: 1px;
+    background: rgba(255,255,255,.08);
+    margin: 16px 0;
+  }
+
+  .materials-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .material-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+
+    padding: 14px;
+    border-radius: 16px;
+
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.08);
+
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .material-card:hover {
+    filter: brightness(1.06);
+  }
+
+  .mt-xxs {
+    margin-top: 6px;
+  }
+</style>
+
+{% endblock %}

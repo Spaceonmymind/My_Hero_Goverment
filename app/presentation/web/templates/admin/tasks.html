@@ -246,6 +246,11 @@
 
             <td class="col-actions">
               <div class="row" style="gap:8px; flex-wrap:wrap;">
+
+                <a class="btn btn-ghost" href="/admin/tasks/{{ t.id }}/edit">
+                  Редактировать
+                </a>
+
                 <form method="post" action="/admin/tasks/{{ t.id }}/toggle" style="display:inline;">
                   <button class="btn btn-ghost" type="submit">
                     {{ "Выключить" if t.is_active else "Включить" }}

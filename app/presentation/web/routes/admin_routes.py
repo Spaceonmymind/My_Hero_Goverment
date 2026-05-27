@@ -399,6 +399,246 @@ def admin_task_detail(request: Request, task_id: int):
         },
     )
 
+@router.get("/tasks/{task_id}/edit", response_class=HTMLResponse)
+def admin_task_edit_page(request: Request, task_id: int):
+    user_or_redirect = _require_admin(request)
+    if not isinstance(user_or_redirect, dict):
+        return user_or_redirect
+
+    user = user_or_redirect
+
+    with SessionLocal() as db:
+        task = db.get(Task, task_id)
+
+        if not task:
+            return RedirectResponse(url="/admin/tasks", status_code=303)
+
+        materials = db.scalars(
+            select(TaskMaterial)
+            .where(TaskMaterial.task_id == task.id)
+            .order_by(TaskMaterial.id.desc())
+        ).all()
+
+    return templates.TemplateResponse(
+        request,
+        "admin/task_edit.html",
+        {
+            "page_title": f"Редактирование: {task.title}",
+            "user": user,
+            "active_nav": "admin_tasks",
+            "task": task,
+            "materials": materials,
+            "error": None,
+            "success": None,
+        },
+    )
+
+
+@router.post("/tasks/{task_id}/edit", response_class=HTMLResponse)
+async def admin_task_edit_save(request: Request, task_id: int):
+    user_or_redirect = _require_admin(request)
+    if not isinstance(user_or_redirect, dict):
+        return user_or_redirect
+
+    user = user_or_redirect
+    form = await request.form()
+
+    title = (form.get("title") or "").strip()
+    description = (form.get("description") or "").strip()
+    category = (form.get("category") or "Общее").strip()
+    points_raw = form.get("points") or "0"
+
+    assignment_type = (form.get("assignment_type") or "individual").strip()
+    required_members_raw = form.get("required_members") or "1"
+
+    is_active = form.get("is_active") == "on"
+
+    block = (form.get("block") or "Общее").strip()
+    sort_order_raw = form.get("sort_order") or "0"
+
+    is_intro = form.get("is_intro") == "on"
+    is_locked_by_intro = form.get("is_locked_by_intro") == "on"
+
+    requires_essay = form.get("requires_essay") == "on"
+    min_essay_len_raw = form.get("min_essay_len") or "0"
+    max_essay_len_raw = form.get("max_essay_len") or "0"
+
+    allows_video_link = form.get("allows_video_link") == "on"
+    video_bonus_points_raw = form.get("video_bonus_points") or "0"
+
+    allows_extra_files = form.get("allows_extra_files") == "on"
+    extra_files_bonus_points_raw = form.get("extra_files_bonus_points") or "0"
+
+    material_title = (form.get("material_title") or "").strip()
+
+    uploaded_materials = []
+    for value in form.getlist("materials"):
+        if hasattr(value, "filename") and value.filename:
+            uploaded_materials.append(value)
+
+    try:
+        points = int(points_raw)
+    except ValueError:
+        points = -1
+
+    try:
+        required_members = int(required_members_raw)
+    except ValueError:
+        required_members = 0
+
+    try:
+        sort_order = int(sort_order_raw)
+    except ValueError:
+        sort_order = -1
+
+    try:
+        min_essay_len = int(min_essay_len_raw)
+    except ValueError:
+        min_essay_len = -1
+
+    try:
+        max_essay_len = int(max_essay_len_raw)
+    except ValueError:
+        max_essay_len = -1
+
+    try:
+        video_bonus_points = int(video_bonus_points_raw)
+    except ValueError:
+        video_bonus_points = -1
+
+    try:
+        extra_files_bonus_points = int(extra_files_bonus_points_raw)
+    except ValueError:
+        extra_files_bonus_points = -1
+
+    def render(task, materials, error=None, success=None):
+        return templates.TemplateResponse(
+            request,
+            "admin/task_edit.html",
+            {
+                "page_title": f"Редактирование: {task.title}",
+                "user": user,
+                "active_nav": "admin_tasks",
+                "task": task,
+                "materials": materials,
+                "error": error,
+                "success": success,
+            },
+            status_code=400 if error else 200,
+        )
+
+    with SessionLocal() as db:
+        task = db.get(Task, task_id)
+
+        if not task:
+            return RedirectResponse(url="/admin/tasks", status_code=303)
+
+        materials = db.scalars(
+            select(TaskMaterial)
+            .where(TaskMaterial.task_id == task.id)
+            .order_by(TaskMaterial.id.desc())
+        ).all()
+
+        if not title:
+            return render(task, materials, error="Укажи название задания.")
+
+        if points < 0:
+            return render(task, materials, error="Баллы должны быть числом 0 или больше.")
+
+        if assignment_type not in ("individual", "team"):
+            return render(task, materials, error="Некорректный тип задания.")
+
+        if required_members < 1:
+            return render(task, materials, error="Количество участников должно быть больше 0.")
+
+        if assignment_type == "team" and required_members < 2:
+            return render(task, materials, error="Для группового задания нужно минимум 2 участника.")
+
+        if assignment_type == "individual":
+            required_members = 1
+
+        if not block:
+            return render(task, materials, error="Укажи блок задания.")
+
+        if sort_order < 0:
+            return render(task, materials, error="Порядок сортировки должен быть 0 или больше.")
+
+        if min_essay_len < 0 or max_essay_len < 0:
+            return render(task, materials, error="Ограничения эссе должны быть 0 или больше.")
+
+        if requires_essay and max_essay_len and min_essay_len > max_essay_len:
+            return render(task, materials, error="Минимальная длина эссе не может быть больше максимальной.")
+
+        if video_bonus_points < 0:
+            return render(task, materials, error="Бонус за видеовизитку должен быть 0 или больше.")
+
+        if extra_files_bonus_points < 0:
+            return render(task, materials, error="Бонус за дополнительные материалы должен быть 0 или больше.")
+
+        if is_intro:
+            is_locked_by_intro = False
+
+        task.title = title
+        task.description = description
+        task.category = category or "Общее"
+        task.points = points
+        task.is_active = is_active
+
+        task.assignment_type = assignment_type
+        task.required_members = required_members
+
+        task.block = block
+        task.sort_order = sort_order
+        task.is_intro = is_intro
+        task.is_locked_by_intro = is_locked_by_intro
+
+        task.requires_essay = requires_essay
+        task.min_essay_len = min_essay_len
+        task.max_essay_len = max_essay_len
+
+        task.allows_video_link = allows_video_link
+        task.video_bonus_points = video_bonus_points
+
+        task.allows_extra_files = allows_extra_files
+        task.extra_files_bonus_points = extra_files_bonus_points
+
+        if uploaded_materials:
+            upload_dir = Path("uploads/task_materials")
+            upload_dir.mkdir(parents=True, exist_ok=True)
+
+            for file in uploaded_materials:
+                ext = Path(file.filename).suffix
+                stored_name = f"{uuid.uuid4().hex}{ext}"
+                file_path = upload_dir / stored_name
+
+                content = await file.read()
+                file_size = len(content)
+
+                with open(file_path, "wb") as f:
+                    f.write(content)
+
+                db.add(
+                    TaskMaterial(
+                        task_id=task.id,
+                        original_name=material_title or file.filename,
+                        stored_name=stored_name,
+                        file_path=f"/uploads/task_materials/{stored_name}",
+                        content_type=file.content_type or "",
+                        file_size=file_size,
+                    )
+                )
+
+        db.commit()
+        db.refresh(task)
+
+        materials = db.scalars(
+            select(TaskMaterial)
+            .where(TaskMaterial.task_id == task.id)
+            .order_by(TaskMaterial.id.desc())
+        ).all()
+
+        return render(task, materials, success="Задание обновлено.")
+
 @router.get("/reviews", response_class=HTMLResponse)
 def admin_reviews(request: Request):
     user_or_redirect = _require_admin(request)
