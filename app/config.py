@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     base_url: str = "http://127.0.0.1:8000"
     max_bot_token: str = ""
     max_bot_api_base: str = "https://platform-api2.max.ru"
+    max_verify_ssl: bool = True
     max_webhook_secret: str = ""
     max_mini_app_url: str = ""
     max_mini_app_button_text: str = "Открыть мини-приложение"

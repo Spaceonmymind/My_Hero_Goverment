@@ -13,7 +13,14 @@ from app.config import settings
 
 router = APIRouter(prefix="/max", tags=["max-bot"])
 logger = logging.getLogger(__name__)
-ssl_context = ssl.create_default_context(cafile=certifi.where())
+
+
+def _ssl_context() -> ssl.SSLContext:
+    if settings.max_verify_ssl:
+        return ssl.create_default_context(cafile=certifi.where())
+
+    logger.warning("MAX_VERIFY_SSL is disabled for outgoing MAX API requests")
+    return ssl._create_unverified_context()
 
 
 def _extract_recipient(update: dict) -> tuple[str, int] | None:
@@ -109,7 +116,7 @@ def _send_max_welcome_message(update: dict) -> None:
     )
 
     try:
-        with urllib_request.urlopen(req, timeout=10, context=ssl_context) as response:
+        with urllib_request.urlopen(req, timeout=10, context=_ssl_context()) as response:
             response.read()
         logger.info("MAX welcome message sent to %s=%s", recipient_key, recipient_id)
     except error.HTTPError as exc:

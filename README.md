@@ -16,6 +16,7 @@ Set these environment variables:
 
 ```bash
 MAX_BOT_TOKEN=your_max_bot_token
+MAX_VERIFY_SSL=true
 MAX_WEBHOOK_SECRET=your_webhook_secret
 MAX_MINI_APP_URL=https://max.ru/your_bot_username?startapp
 ```
