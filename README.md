@@ -6,3 +6,18 @@ pip install -U pip
 pip install -e .
 
 uvicorn app.main:app --reload
+```
+
+## MAX bot webhook
+
+Webhook endpoint: `/max/webhook`.
+
+Set these environment variables:
+
+```bash
+MAX_BOT_TOKEN=your_max_bot_token
+MAX_WEBHOOK_SECRET=your_webhook_secret
+MAX_MINI_APP_URL=https://max.ru/your_bot_username?startapp
+```
+
+Subscribe the bot to `bot_started` and `message_created` events in MAX.

@@ -6,6 +6,7 @@ from app.presentation.web.routes.auth_routes import router as auth_router
 from app.presentation.web.routes.student_routes import router as student_router
 from app.presentation.web.routes.admin_routes import router as admin_router
 from app.presentation.web.routes.mentor_routes import router as mentor_router
+from app.presentation.web.routes.max_bot_routes import router as max_bot_router
 from app.infra.db import Base, engine
 from app.infra import models
 
@@ -24,6 +25,7 @@ app.include_router(auth_router)
 app.include_router(student_router)
 app.include_router(admin_router)
 app.include_router(mentor_router)
+app.include_router(max_bot_router)
 
 
 @app.get("/health")
