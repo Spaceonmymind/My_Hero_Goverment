@@ -3,14 +3,17 @@ from __future__ import annotations
 import json
 import logging
 import secrets
+import ssl
 from urllib import error, parse, request as urllib_request
 
+import certifi
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 
 from app.config import settings
 
 router = APIRouter(prefix="/max", tags=["max-bot"])
 logger = logging.getLogger(__name__)
+ssl_context = ssl.create_default_context(cafile=certifi.where())
 
 
 def _extract_recipient(update: dict) -> tuple[str, int] | None:
@@ -106,7 +109,7 @@ def _send_max_welcome_message(update: dict) -> None:
     )
 
     try:
-        with urllib_request.urlopen(req, timeout=10) as response:
+        with urllib_request.urlopen(req, timeout=10, context=ssl_context) as response:
             response.read()
         logger.info("MAX welcome message sent to %s=%s", recipient_key, recipient_id)
     except error.HTTPError as exc:
