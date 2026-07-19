@@ -42,14 +42,29 @@ def _should_send_welcome(update: dict) -> bool:
 
 
 def _mini_app_button() -> dict:
+    mini_app_url = settings.max_mini_app_url or settings.base_url
+    parsed_url = parse.urlparse(mini_app_url)
+    is_max_deep_link = parsed_url.netloc in {"max.ru", "www.max.ru"} and parsed_url.path.strip("/")
+
+    if is_max_deep_link:
+        return {
+            "type": "open_app",
+            "text": settings.max_mini_app_button_text,
+            "web_app": parsed_url.path.strip("/").split("/", 1)[0],
+        }
+
+    if mini_app_url.startswith("http://") or mini_app_url.startswith("https://"):
+        return {
+            "type": "link",
+            "text": settings.max_mini_app_button_text,
+            "url": mini_app_url,
+        }
+
     button = {
         "type": "open_app",
         "text": settings.max_mini_app_button_text,
+        "web_app": mini_app_url,
     }
-
-    mini_app_url = settings.max_mini_app_url or settings.base_url
-    if mini_app_url:
-        button["web_app"] = mini_app_url
 
     return button
 
@@ -93,6 +108,7 @@ def _send_max_welcome_message(update: dict) -> None:
     try:
         with urllib_request.urlopen(req, timeout=10) as response:
             response.read()
+        logger.info("MAX welcome message sent to %s=%s", recipient_key, recipient_id)
     except error.HTTPError as exc:
         details = exc.read().decode("utf-8", errors="replace")
         logger.error("MAX API returned %s: %s", exc.code, details)
