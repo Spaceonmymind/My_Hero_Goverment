@@ -6,8 +6,39 @@ from app.infra.db import SessionLocal
 from app.infra.models import User, StudentProfile, School, ClassGroup
 from app.infra.security import verify_password, hash_password
 from sqlalchemy import select
+from app.config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def _set_auth_cookies(resp: RedirectResponse, role: str, email: str) -> None:
+    resp.set_cookie(
+        "mh_role",
+        role,
+        httponly=True,
+        secure=settings.auth_cookie_secure,
+        samesite=settings.auth_cookie_samesite,
+    )
+    resp.set_cookie(
+        "mh_email",
+        email,
+        httponly=True,
+        secure=settings.auth_cookie_secure,
+        samesite=settings.auth_cookie_samesite,
+    )
+
+
+def _delete_auth_cookies(resp: RedirectResponse) -> None:
+    resp.delete_cookie(
+        "mh_role",
+        secure=settings.auth_cookie_secure,
+        samesite=settings.auth_cookie_samesite,
+    )
+    resp.delete_cookie(
+        "mh_email",
+        secure=settings.auth_cookie_secure,
+        samesite=settings.auth_cookie_samesite,
+    )
 
 
 @router.get("/login", response_class=HTMLResponse)
@@ -66,8 +97,7 @@ async def login_post(request: Request):
         target = "/"
 
     resp = RedirectResponse(url=target, status_code=303)
-    resp.set_cookie("mh_role", user.role, httponly=True, samesite="lax")
-    resp.set_cookie("mh_email", user.email, httponly=True, samesite="lax")
+    _set_auth_cookies(resp, user.role, user.email)
     return resp
 
 @router.get("/register", response_class=HTMLResponse)
@@ -181,14 +211,12 @@ async def register_post(request: Request):
         db.commit()
 
     resp = RedirectResponse(url="/", status_code=303)
-    resp.set_cookie("mh_role", "student", httponly=True, samesite="lax")
-    resp.set_cookie("mh_email", email, httponly=True, samesite="lax")
+    _set_auth_cookies(resp, "student", email)
     return resp
 
 
 @router.post("/logout")
 def logout():
     resp = RedirectResponse(url="/auth/login", status_code=303)
-    resp.delete_cookie("mh_role")
-    resp.delete_cookie("mh_email")
+    _delete_auth_cookies(resp)
     return resp

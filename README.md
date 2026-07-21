@@ -22,3 +22,10 @@ MAX_MINI_APP_URL=https://max.ru/your_bot_username?startapp
 ```
 
 Subscribe the bot to `bot_started` and `message_created` events in MAX.
+
+For MAX WebView on HTTPS production, set:
+
+```bash
+AUTH_COOKIE_SECURE=true
+AUTH_COOKIE_SAMESITE=none
+```
