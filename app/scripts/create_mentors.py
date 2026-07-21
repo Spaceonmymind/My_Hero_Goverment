@@ -58,16 +58,19 @@ def main():
             normalized_email = email.strip().lower()
             user = db.scalar(select(User).where(User.email == normalized_email))
 
+            password_hash = hash_password(password)
+
             if not user:
                 user = User(
                     email=normalized_email,
-                    password_hash=hash_password(password),
+                    password_hash=password_hash,
                     role="mentor",
                 )
                 db.add(user)
                 db.flush()
                 created_count += 1
             else:
+                user.password_hash = password_hash
                 if user.role != "mentor":
                     user.role = "mentor"
                     updated_count += 1
@@ -84,6 +87,7 @@ def main():
 
     print(f"Created mentors: {created_count}")
     print(f"Updated existing users: {updated_count}")
+    print("Passwords set from this script for all listed mentors.")
     print()
     print("Credentials:")
     for full_name, email, password in MENTORS:
