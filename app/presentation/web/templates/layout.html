@@ -8,6 +8,32 @@
 
   <link rel="stylesheet" href="/static/css/app.css"/>
   <script defer src="/static/js/app.js"></script>
+  <script>
+    (() => {
+      const params = new URLSearchParams(window.location.search);
+      const auth = params.get("auth") || sessionStorage.getItem("mh_auth");
+      if (!auth) return;
+
+      sessionStorage.setItem("mh_auth", auth);
+
+      const withAuth = (value) => {
+        const url = new URL(value, window.location.origin);
+        if (url.origin !== window.location.origin) return value;
+        if (url.pathname.startsWith("/static/") || url.pathname.startsWith("/uploads/")) return value;
+        url.searchParams.set("auth", auth);
+        return url.pathname + url.search + url.hash;
+      };
+
+      document.addEventListener("DOMContentLoaded", () => {
+        document.querySelectorAll("a[href^='/']").forEach((link) => {
+          link.setAttribute("href", withAuth(link.getAttribute("href")));
+        });
+        document.querySelectorAll("form[action^='/']").forEach((form) => {
+          form.setAttribute("action", withAuth(form.getAttribute("action")));
+        });
+      });
+    })();
+  </script>
 </head>
 
 <body>

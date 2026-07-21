@@ -4,7 +4,7 @@ from app.presentation.web.templates_env import templates
 
 from app.infra.db import SessionLocal
 from app.infra.models import User, StudentProfile, School, ClassGroup
-from app.infra.security import verify_password, hash_password
+from app.infra.security import create_auth_token, verify_password, hash_password
 from sqlalchemy import select
 from app.config import settings
 
@@ -34,6 +34,14 @@ def _delete_auth_cookies(resp: RedirectResponse) -> None:
         secure=settings.auth_cookie_secure,
         samesite=settings.auth_cookie_samesite,
     )
+
+
+def _with_auth_token(url: str, email: str, role: str) -> str:
+    if not settings.auth_url_token_enabled:
+        return url
+
+    separator = "&" if "?" in url else "?"
+    return f"{url}{separator}auth={create_auth_token(email, role)}"
     resp.delete_cookie(
         "mh_email",
         secure=settings.auth_cookie_secure,
@@ -96,7 +104,7 @@ async def login_post(request: Request):
     else:
         target = "/"
 
-    resp = RedirectResponse(url=target, status_code=303)
+    resp = RedirectResponse(url=_with_auth_token(target, user.email, user.role), status_code=303)
     _set_auth_cookies(resp, user.role, user.email)
     return resp
 
@@ -210,7 +218,7 @@ async def register_post(request: Request):
         db.add(profile)
         db.commit()
 
-    resp = RedirectResponse(url="/", status_code=303)
+    resp = RedirectResponse(url=_with_auth_token("/", email, "student"), status_code=303)
     _set_auth_cookies(resp, "student", email)
     return resp
 

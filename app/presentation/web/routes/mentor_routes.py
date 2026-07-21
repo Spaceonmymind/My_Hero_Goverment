@@ -3,6 +3,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import select
 
 from app.presentation.web.templates_env import templates
+from app.presentation.web.auth_context import get_auth_user
 from app.infra.db import SessionLocal
 from app.infra.models import (
     User,
@@ -24,11 +25,7 @@ router = APIRouter(prefix="/mentor", tags=["mentor"])
 
 
 def _get_user(request: Request) -> dict | None:
-    role = request.cookies.get("mh_role")
-    email = request.cookies.get("mh_email")
-    if not role or not email:
-        return None
-    return {"role": role, "email": email}
+    return get_auth_user(request)
 
 
 def _require_mentor(request: Request):

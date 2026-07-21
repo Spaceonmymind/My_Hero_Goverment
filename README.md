@@ -28,4 +28,5 @@ For MAX WebView on HTTPS production, set:
 ```bash
 AUTH_COOKIE_SECURE=true
 AUTH_COOKIE_SAMESITE=none
+AUTH_URL_TOKEN_ENABLED=true
 ```

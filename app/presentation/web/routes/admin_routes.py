@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from app.presentation.web.templates_env import templates
+from app.presentation.web.auth_context import get_auth_user
 from sqlalchemy import select
 from app.infra.db import SessionLocal
 from app.infra.models import User, Task, StudentProfile, TaskSubmission, SubmissionFile, School, ClassGroup, MentorProfile, MentorClassLink, PointsLedger, TaskMaterial
@@ -13,11 +14,7 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 def _get_user(request: Request) -> dict | None:
-    role = request.cookies.get("mh_role")
-    email = request.cookies.get("mh_email")
-    if not role or not email:
-        return None
-    return {"role": role, "email": email}
+    return get_auth_user(request)
 
 
 def _require_admin(request: Request):
@@ -1143,4 +1140,3 @@ async def admin_user_set_mentor_classes(request: Request, user_id: int):
         db.commit()
 
     return RedirectResponse(url="/admin/users/new", status_code=303)
-

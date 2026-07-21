@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     base_url: str = "http://127.0.0.1:8000"
     auth_cookie_secure: bool = False
     auth_cookie_samesite: str = "lax"
+    auth_url_token_enabled: bool = False
     max_bot_token: str = ""
     max_bot_api_base: str = "https://platform-api2.max.ru"
     max_verify_ssl: bool = True
